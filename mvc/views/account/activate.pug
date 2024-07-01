@@ -1,0 +1,7 @@
+extends ../_base
+
+block content
+    input#token(type="hidden" value=`${token}`)
+
+block scripts 
+    script(src="/js/activate.js" type="module")

@@ -1,0 +1,64 @@
+extends _base
+
+block styles 
+    link(rel='stylesheet' href='/css/user.css')
+
+block content 
+    section.navbar-container
+        .container-fluid
+            .container-fill
+                include components/navbar
+    section.user-dashboard-container.px-3
+        .user-dashboard-inner
+            h3 My Profile 
+            -if (requests)
+                #request-area.w-100.input-group-f.ai-c
+                    label.form-label Manager Requests
+                    table#request-table.mb-3
+                        thead
+                            tr 
+                                th Team 
+                                th Actions
+                        tbody
+                            each request in requests 
+                                tr 
+                                    td= `${request.name}`
+                                    td 
+                                        button.btn.btn-primary.me-1(data-action="accept" data-id=`${request._id}`) Accept
+                                        button.btn.btn-danger(data-action="decline" data-id=`${request._id}`) Decline 
+            form#user-form.mb-3
+                .input-group-h.w-100.mb-3
+                    .input-group-f.input-group-1
+                        label.form-label(for="first-name") First name:
+                        .input-group
+                            input#first-name.form-control(type="text" placeholder="First Name" value=`${user.firstName}` required)
+                    .input-group-f.input-group-1
+                        label.form-label(for="last-name") Last name:
+                        .input-group
+                            input#last-name.form-control(type="text" placeholder="Last Name" value=`${user.lastName}` required)
+                .input-group-h.w-100.mb-3
+                    .input-group-f.input-group-1
+                        label.form-label(for="first-name") Display name:
+                        .input-group
+                            input#display-name.form-control(type="text" placeholder="Display Name" value=`${user.displayName}` required)
+                    .input-group-f.input-group-1
+                        label.form-label(for="email") E-mail:
+                        .input-group
+                            input#email.form-control(type="email" placeholder="E-mail" value=`${user.email}` required)
+                button.btn.btn-primary(type="submit") Update Information
+            form#password-form.mb-3
+                .input-group-f.mb-3
+                    label.form-label(for="current-pw") Current password
+                    input#current-pw(type="password" placeholder="*****")
+                .input-group-f.mb-3
+                    label.form-label(for="current-pw") New password
+                    input#new-pw(type="password" placeholder="*****")
+                .input-group-f.mb-3
+                    label.form-label(for="current-pw") Confirm new password
+                    input#pw-confirm(type="password" placeholder="*****")
+                button.btn.btn-primary(type="submit") Change password
+            
+
+
+block scripts 
+    script(src="/js/profile.js" type="module" defer)

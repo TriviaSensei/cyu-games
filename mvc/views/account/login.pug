@@ -1,0 +1,23 @@
+extends ../_base
+
+block content 
+    .w-100.d-flex 
+        h1.m-auto.text-center.mt-2 CYu Play
+    section.m-auto
+        .container-fluid 
+            .container-fill 
+                h3.mb-3 Log in
+                .form-container
+                    form#login-form
+                        label.form-label(for="name") Username
+                        .input-group.mb-3
+                            input#name.form-control(type="text" name="username" placeholder="Username" required)
+                        label.form-label(for="password") Password
+                        .input-group.mb-3
+                            input#password.form-control(type="password" name="password" placeholder="Password" required)
+                        .input-group
+                            button#login-button.btn.btn-primary.mb-5(type="submit") Log in
+                        //- h6.mb-3 Forgot your password? #[a(href="/forgotPassword") Reset it here].
+                        h6.mb-3 Don't have an account? #[a(href="/signup") Sign up here].
+block scripts 
+    script(src="/js/index.js" type="module" defer)

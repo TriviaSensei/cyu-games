@@ -1,0 +1,18 @@
+- if (user)
+    li.nav-greeting 
+        span= `Hello, ${user.firstName}`
+- if (!user)
+    li.nav-item
+        a.nav-link(href="/login") Login/Signup
+- else
+    li.nav-item 
+        a.nav-link(href="/me") Profile
+    li.nav-item
+        a.nav-link(href="/mystuff") My stuff
+li.nav-item 
+        a.nav-link(href="/help") Help
+- if (user)
+    li.nav-item 
+        a.nav-link(href="/contact") Contact
+    li.nav-item
+        a.nav-link#logout Logout

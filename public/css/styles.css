@@ -1,0 +1,50 @@
+:root {
+	--black: #111111;
+	--white: #dddddd;
+}
+
+html,
+body {
+	background-color: var(--black);
+	color: var(--white);
+	height: 100%;
+	width: 100%;
+	overflow-y: hidden;
+}
+
+.container-all {
+	position: relative;
+	margin: auto;
+	display: flex;
+	height: 100%;
+	width: min(600px, 100%);
+	overflow-y: auto;
+	flex-direction: column;
+}
+
+.message {
+	position: absolute;
+	z-index: 2000;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: fit-content;
+	width: -moz-fit-content;
+	border-radius: 5px;
+	border: 1px solid black;
+	background-color: white;
+	padding: 10px;
+	opacity: 1;
+	font-weight: bold;
+	transition: opacity 0.25s ease-in-out;
+	-moz-transition: opacity 0.25s ease-in-out;
+	-webkit-transition: opacity 0.25s ease-in-out;
+}
+
+a {
+	color: yellow;
+}
+
+.invisible-div {
+	display: none;
+}

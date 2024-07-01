@@ -1,0 +1,37 @@
+extends ../_base
+
+block styles
+    link(rel='stylesheet' href='/css/signup.css')
+
+block content 
+    section.signup-body
+        .container-fluid 
+            #body-container.container-fill
+                h3.my-3 Sign up for CYu Play
+                .form-container
+                    form#sign-up-form
+                        label.form-label(for="username") Username 
+                        .input-group.mb-3
+                            input#username.form-control(type="text" name="username" placeholder="Username" required)
+                            span.input-group-text.validator-span
+                            .validator
+                        label.form-label(for="email") E-Mail address (will not be shared)
+                        .input-group.mb-3
+                            input#email.form-control(type="email" name="email" placeholder="E-Mail Address" required)
+                            span.input-group-text.validator-span
+                            .validator
+                        label.form-label(for="password") Password
+                        .input-group.mb-3
+                            input#password.form-control(type="password" name="password" placeholder="Password" pattern=".{8,}" required)
+                            span#pw-span.input-group-text.validator-span
+                            .validator
+                        label.form-label(for="password-confirm") Confirm Password
+                        .input-group.mb-3 
+                            input#password-confirm.form-control(type="password" name="password-confirm" placeholder="Confirm password" pattern=".{8,}" required)
+                            span#pw-confirm-span.input-group-text.invalid-pw-confirm
+                            .pw-confirm-validator.invalid
+                        button.btn.btn-primary Sign Up
+                        h6.my-3 Already have an account? #[a(href="/") Login here].
+
+block scripts 
+    script(Src="/js/signup.js" type="module" defer)
