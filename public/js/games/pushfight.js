@@ -166,20 +166,24 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (e.detail) e.target.classList.add('d-none');
 		else e.target.classList.remove('d-none');
 	});
+	const resizeBoard = () => {
+		const gb = document.querySelector('#game-board');
+		const gbc = document.querySelector('#game-board-container');
+		const rect = gbc.getBoundingClientRect();
+		for (var i = 20; i > 0; i--) {
+			const pct = i * 5;
+			gb.style = `width:${pct}%;`;
+			const r2 = gb.getBoundingClientRect();
+			if (r2.height <= rect.height - 50 && r2.width <= rect.width - 50) break;
+		}
+	};
 	gameState.addWatcher(gameDiv, (e) => {
 		if (e.detail && e.target.classList.contains('d-none')) {
 			e.target.classList.remove('d-none');
-			const gb = document.querySelector('#game-board');
-			const gbc = document.querySelector('#game-board-container');
-			const rect = gbc.getBoundingClientRect();
-			for (var i = 20; i > 0; i--) {
-				const pct = i * 5;
-				gb.style = `width:${pct}%;`;
-				const r2 = gb.getBoundingClientRect();
-				if (r2.height <= rect.height - 50 && r2.width <= rect.width - 50) break;
-			}
+			resizeBoard();
 		} else e.target.classList.add('d-none');
 	});
+	window.addEventListener('resize', resizeBoard);
 
 	socket.on('game-created', (data) => {
 		console.log(data);

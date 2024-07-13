@@ -50,3 +50,39 @@
 .wall {
 	background-color: #777777;
 }
+
+.player-timer {
+	font-size: 2rem;
+}
+
+.game-piece {
+	width: 18%;
+	height: 9%;
+	position: absolute;
+	transition: top 0.3s, left 0.3s;
+	z-index: 2;
+	transform: translate(-50%, -50%);
+}
+
+.white {
+	background-color: var(--white);
+	border: 2px solid var(--black);
+}
+
+.black {
+	background-color: var(--black);
+	border: 2px solid var(--white);
+}
+
+.circle {
+	border-radius: 50%;
+}
+
+.hat {
+	position: absolute;
+	z-index: 3;
+	width: 10%;
+	height: 5%;
+	background-color: red;
+	transform: translate(-50%, -50%);
+}

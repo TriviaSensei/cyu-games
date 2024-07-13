@@ -9,6 +9,9 @@
                 .player-timer 0:00
         #game-board-container.d-flex.f-1.overflow-hidden
             #game-board
+                - for (var i = 0;i < 10; i++)
+                    .game-piece(class=`${i<5?'black':'white'} ${i%5<3 ? 'square':'circle'}` style=`left: ${i%5*20+10}%; top: ${i<5?5:95}%;`)
+                .hat(style="top: 50%;left: 5%;")
                 - for (var i=-1;i<9;i++)
                     .ratio.filler(class=`${i>=1 && i<=5 ? 'wall' : ''}` style="--bs-aspect-ratio: 200%;")
                         div
