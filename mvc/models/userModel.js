@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
+const Filter = require('bad-words');
+const filter = new Filter();
+
+const illegalNames = ['system', 'me'];
 
 const userSchema = new mongoose.Schema({
 	username: {
@@ -9,6 +13,20 @@ const userSchema = new mongoose.Schema({
 		trim: true,
 		unique: true,
 		required: [true, 'A player must have a user name.'],
+		validate: {
+			validator: (val) => {
+				return (
+					!illegalNames.includes(val.toLowerCase()) && !filter.isProfane(val)
+				);
+			},
+			message: 'That username is not allowed.',
+		},
+	},
+	displayName: {
+		type: String,
+		trim: true,
+		unique: true,
+		required: true,
 	},
 	active: Boolean,
 	email: {
@@ -19,6 +37,7 @@ const userSchema = new mongoose.Schema({
 		maxlength: [100, 'Enter a maximum of 100 characters.'],
 		validate: [validator.isEmail, 'Please provide a valid e-mail address.'],
 	},
+	ratings: [Object],
 	password: {
 		type: String,
 		minLength: 8,

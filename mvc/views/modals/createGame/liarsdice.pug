@@ -1,0 +1,29 @@
+//-
+    game settings
+    - Your color
+        - white, black, random
+    - Timer
+        - off, time per turn (with reserve), time per game
+form#create-game-form
+    .input-row 
+        .input-label 
+            .input-label-content Starting Dice
+        .input-container 
+            input#starting-dice(name="startingDice" type="number" min="3" max="10")
+    .input-row
+        .input-label 
+            .input-label-content Time per move (sec)
+        .input-container 
+            input#time(name="time" type="number" min="30" max="60")
+    .input-row 
+        .input-label
+            .input-label-content Min players
+        .input-container 
+            input#min-players(name="minPlayers" type="number" min="2")
+    .input-row 
+        .input-label
+            .input-label-content Max players
+        .input-container 
+            input#max-players(name="maxPlayers" type="number" max="8")
+        
+            

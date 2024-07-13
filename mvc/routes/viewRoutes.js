@@ -12,5 +12,6 @@ router.get(
 );
 router.use(authController.protect);
 router.get('/play', viewController.getPlay);
+router.get('/play/:gameName', viewController.getGame);
 // router.get('/:game', viewController.getHome);
 module.exports = router;

@@ -18,8 +18,6 @@ const signToken = (id) => {
 const createAndSendToken = (user, statusCode, req, res) => {
 	const token = signToken(user._id);
 
-	console.log(token);
-
 	res.cookie('jwt', token, {
 		expires: new Date(
 			Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
@@ -93,6 +91,9 @@ exports.signup = catchAsync(async (req, res, next) => {
 	//Only take the necessary fields.
 	const url = `${req.protocol}://${req.get('host')}/activate`;
 
+	if (req.body.username.trim().length < 3)
+		return next(new AppError('Usernames must be at least 3 characters', 400));
+
 	const playerExists = await User.findOne({ username: req.body.username });
 	if (playerExists) {
 		return next(
@@ -108,9 +109,11 @@ exports.signup = catchAsync(async (req, res, next) => {
 	activationToken = crypto.createHash('sha256').update(aToken).digest('hex');
 
 	const newUser = await User.create({
-		username: req.body.username,
+		username: req.body.username.toLowerCase(),
+		displayName: req.body.username,
 		active: false,
 		email: req.body.email,
+		ratings: [],
 		password: req.body.password,
 		passwordConfirm: req.body.passwordConfirm,
 		activationToken,
@@ -134,13 +137,13 @@ exports.signup = catchAsync(async (req, res, next) => {
 			});
 			if (dp) {
 				console.log(
-					`Deleted ${dp.fName} ${dp.lName} due to failure to activate account.`
+					`Deleted ${dp.displayName} due to failure to activate account.`
 				);
 			} else {
 				const activeUser = await User.findById(newUser._id);
 				if (activeUser) {
 					console.log(
-						`User ${activeUser.fName} ${activeUser.lName} has activated their account.`
+						`User ${activeUser.displayName} has activated their account.`
 					);
 				}
 			}
@@ -173,14 +176,14 @@ exports.signup = catchAsync(async (req, res, next) => {
 // });
 
 exports.login = catchAsync(async (req, res, next) => {
-	const { email, password } = req.body;
+	const { username, password } = req.body;
 	//check if email and password exists
-	if (!email || !password) {
-		return next(new AppError('Please provide email and password.', 400));
+	if (!username || !password) {
+		return next(new AppError('Please provide username and password.', 400));
 	}
 
 	//check if user exists and password is correct
-	const user = await User.findOne({ email: email.toLowerCase() }).select(
+	const user = await User.findOne({ username: username.toLowerCase() }).select(
 		'+password'
 	);
 
@@ -216,13 +219,11 @@ exports.logout = (req, res) => {
 		httpOnly: true,
 	});
 	res.status(200).json({ status: 'success' });
-	console.log('logged out');
 };
 
 exports.protect = catchAsync(async (req, res, next) => {
 	// get the token and check if it exists
 	let token;
-
 	if (req.headers.authorization?.startsWith('Bearer')) {
 		token = req.headers.authorization.split(' ')[1];
 	} else if (req.cookies.jwt) {
@@ -238,14 +239,14 @@ exports.protect = catchAsync(async (req, res, next) => {
 		// return next(
 		// 	new AppError('You are not logged in. Please log in for access.', 401)
 		// );
-		return res.redirect('/login');
+		return res.redirect('/');
 	}
 	// validate the token
 	const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 	// check if the user exists
 	const currentUser = await User.findById(decoded.id);
 	if (!currentUser) {
-		return res.redirect('/login');
+		return res.redirect('/');
 	}
 	// check if the user changed password after the token was issued
 	if (currentUser.changedPasswordAfter(decoded.iat)) {
@@ -290,11 +291,17 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
 	const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
 	// check if the user exists
-	const currentUser = await User.findById(decoded.id);
-	if (!currentUser) {
+	let currentUser;
+
+	try {
+		currentUser = await User.findById(decoded.id.toString());
+		if (!currentUser) {
+			return next();
+		}
+	} catch (err) {
+		currentUser = undefined;
 		return next();
 	}
-
 	// check if the user changed password after the token was issued
 	if (currentUser.changedPasswordAfter(decoded.iat)) {
 		return next();
@@ -329,7 +336,8 @@ exports.restrictTo = (...roles) => {
 		//access is granted if the logged-in user has a role in the roles array
 
 		if (!res.locals.user) {
-			return res.redirect('/login');
+			console.log('no local user');
+			return res.redirect('/');
 		}
 
 		if (!roles.includes(res.locals.user.role)) {

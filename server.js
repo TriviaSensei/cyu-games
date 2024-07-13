@@ -27,6 +27,7 @@ const path = require('path');
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+
 app.use(morgan('dev'));
 app.use(cookieParser());
 app.set('view engine', 'pug');
@@ -34,4 +35,10 @@ app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'mvc/views'));
 
 app.use('/api/v1/users', userRouter);
+app.post('/api/v1/test', (req, res, next) => {
+	console.log(req.body);
+	res.status(200).json({
+		status: 'success',
+	});
+});
 app.use('/', viewRouter);

@@ -1,0 +1,28 @@
+extends _base
+
+block styles 
+    link(rel="stylesheet" href="/css/lobby.css")
+    - if (name)
+        link(rel="stylesheet" href=`/css/games/${name}.css`)
+
+block modals 
+    include modals/logoutModal
+    include modals/createGameModal
+
+block content
+    include components/navbar_game
+    include components/game_div
+    #game-list
+        button.btn.btn-primary.m-2(type="button" data-bs-toggle="modal" data-bs-target="#create-game-modal") Create Game
+        #available-games
+    #chat-container
+        #lobby-chat-box.chat-box
+        form#lobby-chat-form.input-group.mb-2
+            input#lobby-chat-message.form-control(type="text" autocomplete="off" autocorrect="off" placeholder="Your message" aria-label="message" aria-describedby="send-chat")
+            button#send-lobby-chat.btn.btn-secondary(type="submit") Send
+
+
+block scripts
+    script(src="/js/logout.js" type="module")
+    script(src="/socket.io/socket.io.js")
+    script(src=`/js/games/${name || "_redirect"}.js` type="module")

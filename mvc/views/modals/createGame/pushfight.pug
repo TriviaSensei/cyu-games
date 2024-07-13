@@ -1,0 +1,42 @@
+//-
+    game settings
+    - Your color
+        - white, black, random
+    - Timer
+        - off, time per turn (with reserve), time per game
+form#create-game-form
+    .input-row 
+        .input-label 
+            .input-label-content Your color
+        .input-container 
+            input#color-white(type="radio" value="white" name="color")
+            label(for="color-white") White 
+            input#color-black(type="radio" value="black" name="color")
+            label(for="color-black") Black 
+            input#color-random(type="radio" value="random" name="color")
+            label(for="color-random") Random 
+    .input-row 
+        .input-label 
+            .input-label-content Timer
+        .input-container 
+            input#timer-game(type="radio" value="game" name="timer")
+            label(for="timer-game") Game 
+            input#timer-move(type="radio" value="move" name="timer")
+            label(for="timer-move") Move 
+            input#timer-off(type="radio" value="off" name="timer")
+            label(for="timer-off") Off
+    #timer-settings-area.d-flex.flex-column 
+        .input-row 
+            .input-label
+                .input-label-content Time per #[span#timer-setting game] (min)
+            .input-container 
+                input#time(type="number" min="5")
+        .input-row 
+            .input-label 
+                a(data-bs-toggle="tooltip")
+                    img.help(src="/img/help.svg")
+                #adjustment-type.input-label-content Incrememt (sec)
+            .f-1.d-flex.flex-column
+                input#adjustment(type="number" min="0")
+        
+            

@@ -1,0 +1,10 @@
+.modal.fade#logout-modal(tabindex="-1" aria-labelledby="logout-label" aria-hidden="true")
+    .modal-dialog.modal-dialog-centered
+        .modal-content#logout-modal-content
+            .modal-header
+                h5.modal-title#logout-label Logout?
+            .modal-body
+                p Are you sure you wish to logout? Any live games in progress will be forfeited.
+            .modal-footer
+                button.btn.btn-primary#logout(type="button") Yes
+                button.btn.btn-secondary(type="button" data-bs-dismiss="modal") No

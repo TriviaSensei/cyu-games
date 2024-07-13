@@ -1,0 +1,27 @@
+.f-1.overflow-hidden
+    .w-100.h-100.mw-100.mh-100.d-flex.flex-row
+        #game-info.d-flex.flex-column.justify-content-between.h-100.ps-3.py-3
+            .player-tag 
+                .player-name ??? 
+                .player-timer 0:00
+            .player-tag 
+                .player-name ??? 
+                .player-timer 0:00
+        #game-board-container.d-flex.f-1.overflow-hidden
+            #game-board
+                - for (var i=-1;i<9;i++)
+                    .ratio.filler(class=`${i>=1 && i<=5 ? 'wall' : ''}` style="--bs-aspect-ratio: 200%;")
+                        div
+                    - for (var j = 0; j< 4; j++)
+                        - var spaceNumber = i*4+j;
+                        .ratio.ratio-1x1
+                            div
+                                .game-space(class=`${spaceNumber < 0 || spaceNumber > 31 || [0,3,7,24,28,31].includes(spaceNumber) ? 'empty':''}${i===3 ? 'center-space-top' : i===4 ? 'center-space-bottom' : ''}` data-space=`${spaceNumber}`)
+                    .ratio.filler(class=`${i>=2 && i<=6 ? 'wall' : ''}` style="--bs-aspect-ratio: 200%;")
+                        div
+
+                 
+                
+                
+            
+                    

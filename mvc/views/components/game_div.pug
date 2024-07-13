@@ -1,0 +1,9 @@
+#game-div.w-100.h-100.d-flex.flex-column.d-none
+    #game-message.message-banner.mx-auto.d-flex.flex-row.py-2
+        .spinner-border.me-3(role="status")
+            span.visually-hidden Loading 
+        .m-auto Waiting for opponent(s)...
+    - if (title === 'PushFight')
+        include gameBoards/pushfight
+    - else if (title === "Liar's Dice")
+        include gameBoards/liarsdice

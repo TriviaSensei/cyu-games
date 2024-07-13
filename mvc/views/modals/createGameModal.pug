@@ -1,0 +1,13 @@
+.modal.fade#create-game-modal(tabindex="-1" aria-labelledby="create-game-label" aria-hidden="true")
+    .modal-dialog.modal-dialog-centered
+        .modal-content#create-game-modal-content
+            .modal-header
+                h5.modal-title#create-game-label Create Game
+            .modal-body
+                - if (title === 'PushFight') 
+                    include createGame/pushfight
+                - else if (title === "Liar's Dice")
+                    include createGame/liarsdice
+            .modal-footer
+                button.btn.btn-primary#create-game(type="button") Create
+                button.btn.btn-secondary(type="button" data-bs-dismiss="modal") Cancel

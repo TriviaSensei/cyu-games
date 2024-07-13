@@ -16,11 +16,12 @@ export const handleRequest = (
 			if (req.readyState == 4) {
 				if (req.status !== 204) {
 					const res = JSON.parse(req.response);
-					responseHandler(res);
+					if (responseHandler) responseHandler(res);
 				} else {
-					responseHandler({
-						status: 'success',
-					});
+					if (responseHandler)
+						responseHandler({
+							status: 'success',
+						});
 				}
 			}
 		};
@@ -50,7 +51,7 @@ export const handleMultiRequest = (
 		req.onreadystatechange = () => {
 			if (req.readyState == 4) {
 				const res = JSON.parse(req.response);
-				responseHandler(res);
+				if (responseHandler) responseHandler(res);
 			}
 		};
 		req.send(formData);

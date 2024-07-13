@@ -1,0 +1,8 @@
+nav#navbar-game.navbar.navbar-dark.navbar-expand-lg.bg-dark
+    .container-fluid
+        .navbar-brand(href="#")= title
+        ul
+            li= `Hi, ${user.displayName}`
+            li Profile 
+            li
+                a#logout(role="button" data-bs-toggle="modal" data-bs-target="#logout-modal") Logout

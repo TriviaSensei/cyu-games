@@ -1,1 +1,11 @@
 extends _base
+
+block content 
+    include components/navbar_lobby
+    .mt-2.overflow-auto
+        h2 Select a game: 
+        #game-list-area 
+        
+block scripts 
+    script(src="/socket.io/socket.io.js")
+    script(src="/js/play.js" type="module")

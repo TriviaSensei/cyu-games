@@ -1,6 +1,7 @@
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const User = require('../models/userModel');
+const { gameList, getGame } = require('../utils/gameList');
 
 exports.httpsRedirect = (req, res, next) => {
 	if (
@@ -16,15 +17,10 @@ exports.httpsRedirect = (req, res, next) => {
 };
 
 exports.getHome = (req, res, next) => {
-	if (res.locals.user)
-		res.status(200).render('index', {
-			title: 'Home',
-			user: res.locals.user,
-		});
-	else
-		res.status(200).render('account/login', {
-			title: 'Login',
-		});
+	res.status(200).render('account/login', {
+		title: 'Login',
+		user: res.locals.user,
+	});
 };
 
 exports.getSignup = (req, res, next) => {
@@ -44,8 +40,23 @@ exports.getActivation = async (req, res, next) => {
 };
 
 exports.getPlay = (req, res, next) => {
-	res.status(200).render('play', {
-		title: 'Play',
+	if (res.locals.user)
+		res.status(200).render('play', {
+			title: 'Play',
+			user: res.locals.user,
+		});
+	else
+		res.status(200).render('account/login', {
+			title: 'Login',
+			user: res.locals.user,
+		});
+};
+
+exports.getGame = (req, res, next) => {
+	const game = getGame(req.params.gameName);
+	res.status(200).render('lobby', {
+		title: game?.displayName,
+		name: game?.name,
 		user: res.locals.user,
 	});
 };

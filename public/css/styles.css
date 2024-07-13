@@ -1,6 +1,10 @@
 :root {
 	--black: #111111;
 	--white: #dddddd;
+	--green: #00ff77;
+	--gray: #aaaaaa;
+	--dark-gray: #444444;
+	--blue: #0d6efd;
 }
 
 html,
@@ -11,14 +15,16 @@ body {
 	width: 100%;
 	overflow-y: hidden;
 }
-
+.f-1 {
+	flex: 1;
+}
 .container-all {
 	position: relative;
 	margin: auto;
 	display: flex;
 	height: 100%;
 	width: min(600px, 100%);
-	overflow-y: auto;
+	overflow-y: hidden;
 	flex-direction: column;
 }
 
@@ -47,4 +53,42 @@ a {
 
 .invisible-div {
 	display: none;
+}
+
+.navbar-collapse {
+	border: 1px solid var(--white);
+	margin-top: 5px;
+}
+
+.nav-item,
+.nav-greeting {
+	text-align: right;
+	padding-right: 1rem;
+	border-bottom: 1px solid white;
+}
+
+.nav-item {
+	border-bottom: 1px solid var(--white);
+}
+
+.navbar ul {
+	margin-top: auto;
+	margin-bottom: auto;
+	list-style-type: none;
+	display: flex;
+	flex-direction: row;
+	li {
+		margin-left: 1rem;
+	}
+}
+
+.help {
+	height: 1rem;
+	width: 1rem;
+	margin-right: 0.5rem;
+	margin-left: 0.5rem;
+}
+
+input:invalid {
+	border: 3px solid red;
 }
