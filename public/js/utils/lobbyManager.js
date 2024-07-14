@@ -12,6 +12,12 @@ const gameChatBox = document.querySelector('#game-chat-box');
 const createGameModal = new bootstrap.Modal(
 	document.querySelector('#create-game-modal')
 );
+const gameChatArea = new bootstrap.Offcanvas(
+	document.querySelector('#game-chat-container')
+);
+const gameChatButton = document.querySelector('.game-chat-button');
+const badge = document.querySelector('.game-chat-button > .badge');
+
 const newChatMessage = (box, msg) => {
 	const newMessage = createChatMessage(msg.user, msg.message);
 	box.appendChild(newMessage);
@@ -82,8 +88,10 @@ export class LobbyManager {
 			newChatMessage(lobbyChatBox, data);
 		});
 
-		socket.on('chat-message-game', (data) => {
+		socket.on('chat-message-match', (data) => {
 			newChatMessage(gameChatBox, data);
+			if (!gameChatArea._element.classList.contains('show'))
+				badge.classList.remove('d-none');
 		});
 
 		lobbyChatForm.addEventListener('submit', (e) => {
@@ -111,6 +119,37 @@ export class LobbyManager {
 					}
 				)
 			);
+		});
+
+		gameChatForm.addEventListener('submit', (e) => {
+			e.preventDefault();
+			const newMessage = newChatMessage(gameChatBox, {
+				user: 'me',
+				message: gameChatMsg.value,
+			});
+			socket.emit(
+				'chat-message',
+				{
+					message: gameChatMsg.value,
+				},
+				withTimeout(
+					(data) => {
+						if (data.status === 'OK') {
+							gameChatMsg.value = '';
+						} else {
+							showMessage('error', data.message);
+							newMessage.remove();
+						}
+					},
+					() => {
+						showMessage('error', 'Message timed out - try again');
+					}
+				)
+			);
+		});
+
+		gameChatButton.addEventListener('click', (e) => {
+			if (badge) badge.classList.add('d-none');
 		});
 
 		socket.on('cancel-game', (data) => {

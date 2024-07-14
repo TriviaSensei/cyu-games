@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	const createNewGameTile = (data) => {
 		const newTile = createElement('.game-tile');
-		newTile.setAttribute('data-id', data.gameState.matchId);
+		newTile.setAttribute('data-id', data.matchId);
 		let joinBtn;
 
 		joinBtn = createElement('button.btn.btn-primary.join-button');
@@ -184,11 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		} else e.target.classList.add('d-none');
 	});
 	window.addEventListener('resize', resizeBoard);
-
-	socket.on('game-created', (data) => {
-		console.log(data);
-		gameState.setState(data.gameState);
-	});
 
 	socket.on('update-game-state', (data) => {
 		console.log(data);

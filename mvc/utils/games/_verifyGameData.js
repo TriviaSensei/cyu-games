@@ -51,7 +51,6 @@ const verifyGameData = (data, user) => {
 			}
 			data.gameState = {
 				active: false,
-				matchId: uuidV4(),
 				timer: data.timer,
 				players: [
 					{
@@ -77,6 +76,7 @@ const verifyGameData = (data, user) => {
 	if (message !== '') return { status: 'fail', message };
 	return {
 		...data,
+		matchId: uuidV4(),
 		status: 'OK',
 	};
 };

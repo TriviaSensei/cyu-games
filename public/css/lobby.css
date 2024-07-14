@@ -146,3 +146,37 @@ input[type='number'] {
 		flex: 1;
 	}
 }
+
+.game-chat-button {
+	opacity: 0.6;
+	position: absolute;
+	right: 0.3rem;
+	top: 0.3rem;
+	width: 2.4rem;
+	height: 2.4rem;
+	border-radius: 10px;
+}
+
+.game-chat-button > img {
+	width: 100%;
+	height: 100%;
+}
+
+.game-chat-button:hover {
+	opacity: 1;
+}
+
+.badge {
+	background-color: red;
+}
+
+#game-chat-container {
+	background-color: var(--black);
+	color: var(--white);
+}
+
+#new-chat-alert {
+	background-color: var(--white);
+	color: var(--black);
+	text-wrap: nowrap;
+}
