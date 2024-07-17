@@ -11,13 +11,11 @@ const filter = new Filter();
 const pingInterval = 1000;
 const pingTimeout = 500;
 const userTimeout = 5 * 60 * 1000;
+const pregameLength = 3000;
 
 const { gameList, getGame } = require('../utils/gameList');
 
-const verifyGameData = require('./games/_verifyGameData');
-const { disconnect } = require('process');
-
-const gameSockets = {
+const gameManager = {
 	pushfight: require('./games/pushfightSocket'),
 };
 
@@ -31,337 +29,49 @@ const gameSockets = {
  * }
  */
 let connectedUsers = [];
+const mgr = new gameManager['pushfight']({
+	color: 'random',
+	timer: 'game',
+	time: 5,
+	increment: 30,
+	reserve: 10,
+	host: {
+		id: '667cb17b0a7be772a5b2220e',
+		name: 'Chuck',
+		rating: 'Unr',
+	},
+});
+
+/**
+ * game: 'pushfight', 'cribabge', etc.
+ * gameManager: [GAMENAME]Rules {
+ * 		gameState: {
+ * 			active: bool,
+ * 			...settings,
+ *
+ * 			players: [...],
+ * 			...other info, game state, etc.
+ * 		},
+ * 		matchId: alkjsdlfjk=-187ghkjh34-gjh23kjhr
+ *  	host: {
+ *	 			id: alksdjjg34gj,
+ * 				user: Chuck,
+ * 				rating: 1200 (all from DB)
+ * 		},
+ * }
+ *
+ *
+ *
+ */
 let availableGames = [
 	{
 		game: 'pushfight',
-		color: 'random',
-		timer: 'game',
-		time: 5,
-		increment: 30,
-		reserve: 10,
-		matchId: '357b7c68-6bca-47ec-b4ea-84ff49c7df0a',
-		gameState: {
-			active: false,
-			timer: 'game',
-			players: [
-				{
-					time: 300000,
-					increment: 30000,
-					reserve: 0,
-					id: null,
-					name: null,
-					rating: null,
-				},
-				{
-					time: 300000,
-					increment: 30000,
-					reserve: 0,
-					id: null,
-					name: null,
-					rating: null,
-				},
-			],
-			turnsCompleted: 0,
-			moveList: [],
-			boardState: [
-				{
-					piece: null,
-					space: 0,
-					valid: false,
-					up: -1,
-					down: 4,
-					left: null,
-					right: 1,
-				},
-				{
-					piece: null,
-					space: 1,
-					valid: true,
-					up: -1,
-					down: 5,
-					left: -1,
-					right: 2,
-				},
-				{
-					piece: null,
-					space: 2,
-					valid: true,
-					up: -1,
-					down: 6,
-					left: 1,
-					right: -1,
-				},
-				{
-					piece: null,
-					space: 3,
-					valid: false,
-					up: -1,
-					down: 7,
-					left: 2,
-					right: null,
-				},
-				{
-					piece: null,
-					space: 4,
-					valid: true,
-					up: -1,
-					down: 8,
-					left: null,
-					right: 5,
-				},
-				{
-					piece: null,
-					space: 5,
-					valid: true,
-					up: 1,
-					down: 9,
-					left: 4,
-					right: 6,
-				},
-				{
-					piece: null,
-					space: 6,
-					valid: true,
-					up: 2,
-					down: 10,
-					left: 5,
-					right: -1,
-				},
-				{
-					piece: null,
-					space: 7,
-					valid: false,
-					up: 3,
-					down: 11,
-					left: 6,
-					right: null,
-				},
-				{
-					piece: null,
-					space: 8,
-					valid: true,
-					up: 4,
-					down: 12,
-					left: null,
-					right: 9,
-				},
-				{
-					piece: null,
-					space: 9,
-					valid: true,
-					up: 5,
-					down: 13,
-					left: 8,
-					right: 10,
-				},
-				{
-					piece: null,
-					space: 10,
-					valid: true,
-					up: 6,
-					down: 14,
-					left: 9,
-					right: 11,
-				},
-				{
-					piece: null,
-					space: 11,
-					valid: true,
-					up: -1,
-					down: 15,
-					left: 10,
-					right: null,
-				},
-				{
-					piece: null,
-					space: 12,
-					valid: true,
-					up: 8,
-					down: 16,
-					left: null,
-					right: 13,
-				},
-				{
-					piece: null,
-					space: 13,
-					valid: true,
-					up: 9,
-					down: 17,
-					left: 12,
-					right: 14,
-				},
-				{
-					piece: null,
-					space: 14,
-					valid: true,
-					up: 10,
-					down: 18,
-					left: 13,
-					right: 15,
-				},
-				{
-					piece: null,
-					space: 15,
-					valid: true,
-					up: 11,
-					down: 19,
-					left: 14,
-					right: null,
-				},
-				{
-					piece: null,
-					space: 16,
-					valid: true,
-					up: 12,
-					down: 20,
-					left: null,
-					right: 17,
-				},
-				{
-					piece: null,
-					space: 17,
-					valid: true,
-					up: 13,
-					down: 21,
-					left: 16,
-					right: 18,
-				},
-				{
-					piece: null,
-					space: 18,
-					valid: true,
-					up: 14,
-					down: 22,
-					left: 17,
-					right: 19,
-				},
-				{
-					piece: null,
-					space: 19,
-					valid: true,
-					up: 15,
-					down: 23,
-					left: 18,
-					right: null,
-				},
-				{
-					piece: null,
-					space: 20,
-					valid: true,
-					up: 16,
-					down: -1,
-					left: null,
-					right: 21,
-				},
-				{
-					piece: null,
-					space: 21,
-					valid: true,
-					up: 17,
-					down: 25,
-					left: 20,
-					right: 22,
-				},
-				{
-					piece: null,
-					space: 22,
-					valid: true,
-					up: 18,
-					down: 26,
-					left: 21,
-					right: 23,
-				},
-				{
-					piece: null,
-					space: 23,
-					valid: true,
-					up: 19,
-					down: 27,
-					left: 22,
-					right: null,
-				},
-				{
-					piece: null,
-					space: 24,
-					valid: false,
-					up: 20,
-					down: 28,
-					left: null,
-					right: 25,
-				},
-				{
-					piece: null,
-					space: 25,
-					valid: true,
-					up: 21,
-					down: 29,
-					left: -1,
-					right: 26,
-				},
-				{
-					piece: null,
-					space: 26,
-					valid: true,
-					up: 22,
-					down: 30,
-					left: 25,
-					right: 27,
-				},
-				{
-					piece: null,
-					space: 27,
-					valid: true,
-					up: 23,
-					down: -1,
-					left: 26,
-					right: null,
-				},
-				{
-					piece: null,
-					space: 28,
-					valid: false,
-					up: 24,
-					down: -1,
-					left: null,
-					right: 29,
-				},
-				{
-					piece: null,
-					space: 29,
-					valid: true,
-					up: 25,
-					down: -1,
-					left: -1,
-					right: 30,
-				},
-				{
-					piece: null,
-					space: 30,
-					valid: true,
-					up: 26,
-					down: -1,
-					left: 29,
-					right: -1,
-				},
-				{
-					piece: null,
-					space: 31,
-					valid: false,
-					up: 27,
-					down: -1,
-					left: 30,
-					right: null,
-				},
-			],
-		},
-		status: 'OK',
-		host: {
-			id: '667cb17b0a7be772a5b2220e',
-			user: 'Chuck',
-			rating: 'Unr',
-		},
+		gameManager: mgr,
 	},
 ];
+
+// availableGames = [];
+
 // availableGames = [];
 let activeGames = [];
 
@@ -445,27 +155,6 @@ const socket = async (http, server) => {
 		};
 		//add the user to the connected users if they're not already there
 		setUserData({ socketId: socket.id, lastDisconnect: null });
-
-		const joinGame = (game) => {
-			setUserData({ matchId: game.matchId });
-			socket.join(game.matchId);
-			io.to(socket.id).emit('update-game-state', game.gameState);
-		};
-		//see if the user is part of an active game
-		const isInGame = (g) => {
-			return (
-				g.host.id === loggedInUser.id ||
-				g.gameState.players.some((p) => {
-					return p.id === loggedInUser.id;
-				})
-			);
-		};
-		let currentGame = activeGames.find(isInGame);
-		//else see if they were searching for one and disconnected and reconnected
-		if (!currentGame) currentGame = availableGames.find(isInGame);
-
-		if (currentGame) joinGame(currentGame);
-
 		const roomData = gameList.map((c) => {
 			return {
 				...c,
@@ -497,18 +186,106 @@ const socket = async (http, server) => {
 					user: 'system',
 					message: `${loggedInUser.displayName} has entered the lobby.`,
 				});
-				//set up a socket handler with the rules of this specific game
-				if (gameSockets[last]) gameSockets[last](socket);
 
 				//send the list of available games in the lobby to the newly connected user
 				io.to(socket.id).emit(
 					'available-games-list',
 					availableGames.filter((g) => {
-						return g.game === last && g.host.user !== loggedInUser.displayName;
+						return g.game === last && g.gameManager.host.id !== loggedInUser.id;
 					})
 				);
 			}
 		}
+
+		const sendGameUpdate = (gameState) => {
+			gameState.players.forEach((p, i) => {
+				if (!p.user) return;
+				io.to(p.user.socketId).emit('update-game-state', {
+					...gameState,
+					players: gameState.players.map((p2, j) => {
+						return {
+							...p2,
+							isMe: i === j,
+						};
+					}),
+				});
+			});
+		};
+
+		const joinGame = (game) => {
+			const matchId = game.gameManager.getMatchId();
+			const user = getConnectedUser(socket.id);
+			const result = game.gameManager.addPlayer(user);
+			if (result.status !== 'OK')
+				return io.to(socket.id).emit('message', {
+					status: 'error',
+					message: result.message,
+				});
+			setUserData({ matchId });
+			socket.join(matchId);
+			//when a player is actually added (instead of rejoining), send the update to the whole game
+			const gameState = game.gameManager.getGameState();
+			if (result.playerAdded) {
+				console.log(`${user.name} is joining game ${matchId}`);
+				sendGameUpdate(gameState);
+				if (gameState.status === 'pregame') {
+					setTimeout(() => {
+						game.gameManager.gameState.status = 'playing';
+						game.gameManager.gameState.message = null;
+						game.gameManager.gameState.turnStart = Date.now();
+						const gs = game.gameManager.getGameState();
+						gs.players.forEach((p) => {
+							io.to(p.user.socketId).emit('update-game-state', {
+								...gs,
+								players: gs.players.map((p2) => {
+									return {
+										...p2,
+										isMe: p.user.id === p2.user.id,
+									};
+								}),
+								turnStart: Date.now(),
+							});
+						});
+					}, pregameLength);
+				}
+			}
+			//otherwise, send it to just the player who rejoined
+			else {
+				console.log(`${user.name} is rejoining game ${matchId}`);
+				const data = game.gameManager.getGameState();
+				const timeElapsedThisTurn = Date.now() - data.turnStart;
+				data.players = data.players.map((p, i) => {
+					return {
+						...p,
+						time:
+							i !== data.turnsCompleted % 2
+								? p.time
+								: Math.max(0, p.time - timeElapsedThisTurn),
+						reserve:
+							i !== data.turnsCompelted % 2
+								? p.reserve
+								: Math.max(0, p.reserve - timeElapsedThisTurn + p.time),
+						isMe: p.user !== null && p.user.socketId === socket.id,
+					};
+				});
+				data.timeStamp = Date.now();
+				io.to(socket.id).emit('update-game-state', data);
+			}
+		};
+		//see if the user is part of an active game
+		const isInGame = (g) => {
+			return (
+				g.gameManager.host.id === loggedInUser.id ||
+				g.gameManager.getGameState().players.some((p) => {
+					return p.user?.id === loggedInUser.id;
+				})
+			);
+		};
+		let currentGame = activeGames.find(isInGame);
+		//else see if they were searching for one and disconnected and reconnected
+		if (!currentGame) currentGame = availableGames.find(isInGame);
+
+		if (currentGame) joinGame(currentGame);
 
 		socket.on('chat-message', (data, cb) => {
 			if (filter.isProfane(data.message))
@@ -520,10 +297,7 @@ const socket = async (http, server) => {
 				status: 'OK',
 			});
 			const user = getConnectedUser(socket.id);
-			console.log({
-				...user,
-				...data,
-			});
+
 			if (user.matchId)
 				socket.to(user.matchId).emit('chat-message-match', {
 					user: user.name,
@@ -543,45 +317,79 @@ const socket = async (http, server) => {
 				return cb({ status: 'fail', message: 'You are already in a game.' });
 			}
 
-			const toReturn = verifyGameData(data, user);
+			myRating = loggedInUser.ratings.find((r) => {
+				return r.game === data.game;
+			});
 
-			if (toReturn.status === 'OK') {
-				myRating = loggedInUser.ratings.find((r) => {
-					return r.game === data.game;
+			const newGame = {
+				...data,
+				host: {
+					name: user.name,
+					id: user.id,
+					rating: myRating
+						? myRating.games > 20
+							? myRating.rating
+							: `${myRating.rating}P${myRating.games}`
+						: 'Unr',
+				},
+			};
+			try {
+				const gm = new gameManager[user.gameId](newGame);
+				availableGames.push({
+					...newGame,
+					gameManager: gm,
 				});
-				const matchId = uuidV4();
-				setUserData({ matchId });
-				const newGame = {
-					...toReturn,
-					host: {
-						id: user.id,
-						user: user.name,
-						rating: myRating
-							? myRating.games > 20
-								? myRating.rating
-								: `${myRating.rating}P${myRating.games}`
-							: 'Unr',
-					},
-				};
-				availableGames.push(newGame);
-
-				socket.to(user.gameId).emit('available-new-game', newGame);
+				socket.to(user.gameId).emit('available-new-game', gm);
+				socket.join(gm.gameManager.getMatchId());
 				cb({ status: 'OK' });
-				return io.to(socket.id).emit('update-game-state', toReturn.gameState);
+				setUserData({ matchId: gm.getMatchId() });
+				const gs = gm.getGameState();
+				return io.to(socket.id).emit('update-game-state', {
+					...gs,
+					players: gs.players.map((p) => {
+						return {
+							...p,
+							isMe: p.user !== null && p.user.id === user.id,
+						};
+					}),
+				});
+			} catch (err) {
+				cb({
+					status: 'fail',
+					message: err.message,
+				});
 			}
 		});
 
 		socket.on('cancel-game', (data, cb) => {
 			const user = getConnectedUser(socket.id);
+			console.log(`canceling ${user.matchId}`);
+
 			if (!user.matchId)
 				return cb({ status: 'fail', message: 'No game found.' });
 
-			socket.to(user.gameId).emit('cancel-game', { id: user.matchId });
-
+			let message = '';
+			let gameDeleted = false;
 			availableGames = availableGames.filter((g) => {
-				return g.matchId !== user.matchId;
+				if (g.gameManager.matchId !== user.matchId) return true;
+				if (g.gameManager.host.id !== user.id) {
+					message = 'You are not the host of this game and cannot cancel it.';
+					return true;
+				}
+				gameDeleted = true;
+				return false;
 			});
 
+			if (!gameDeleted) {
+				return cb({
+					status: 'fail',
+					message: 'Something went wrong. No game was deleted.',
+				});
+			} else if (message) {
+				return cb({ status: 'fail', message });
+			}
+			socket.to(user.gameId).emit('cancel-game', { id: user.matchId });
+			io.to(socket.id).emit('update-game-state', null);
 			setUserData({ matchId: '' });
 
 			cb({ status: 'OK' });
@@ -589,7 +397,7 @@ const socket = async (http, server) => {
 
 		socket.on('join-game', (data, cb) => {
 			const gameToJoin = availableGames.find((g) => {
-				return g.matchId === data.matchId;
+				return g.gameManager.getMatchId() === data.matchId;
 			});
 			if (!gameToJoin) return cb({ status: 'fail', message: 'Game not found' });
 			cb({ status: 'OK' });

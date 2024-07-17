@@ -1,15 +1,19 @@
 .w-100.h-100.mw-100.mh-100.d-flex.flex-row
     #game-info.d-flex.flex-column.justify-content-between.h-100.ps-3.py-3
-        .player-tag 
+        #opponent-tag.player-tag 
             .player-name ??? 
-            .player-timer 0:00
-        .player-tag 
+            .player-timer-container.d-flex.flex-row.align-items-end
+                .player-timer.me-2.active-timer 0:00
+                .player-reserve 0:00
+        #my-tag.player-tag 
             .player-name ??? 
-            .player-timer 0:00
+            .player-timer-container.d-flex.flex-row.align-items-end
+                .player-timer.me-2.active-timer 0:00
+                .player-reserve 0:00
     #game-board-container.d-flex.f-1.overflow-hidden
         #game-board
             - for (var i = 0;i < 10; i++)
-                .game-piece(class=`${i<5?'black':'white'} ${i%5<3 ? 'square':'circle'}` style=`left: ${i%5*20+10}%; top: ${i<5?5:95}%;`)
+                .game-piece(class=`${i<5?'black':'white'} ${i%5<3 ? 'square':'circle'}` data-id=`${i}` style=`left: ${i%5*20+10}%; top: ${i<5?5:95}%;`)
             .hat(style="top: 50%;left: 95%;")
             - for (var i=-1;i<9;i++)
                 .ratio.filler(class=`${i>=1 && i<=5 ? 'wall' : ''}` style="--bs-aspect-ratio: 200%;")

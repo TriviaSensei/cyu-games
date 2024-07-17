@@ -6,6 +6,7 @@ const lobbyChatForm = document.querySelector('#lobby-chat-form');
 const lobbyChatMsg = document.querySelector('#lobby-chat-message');
 const lobbyChatBox = document.querySelector('#lobby-chat-box');
 const availableGameArea = document.querySelector('#available-games');
+const cancelButton = document.querySelector('#cancel-game');
 const gameChatForm = document.querySelector('#game-chat-form');
 const gameChatMsg = document.querySelector('#game-chat-message');
 const gameChatBox = document.querySelector('#game-chat-box');
@@ -35,7 +36,6 @@ export class LobbyManager {
 			withTimeout(
 				(data) => {
 					if (data.status !== 'OK') return showMessage('error', data.message);
-					console.log(data);
 				},
 				() => {
 					showMessage('error', 'Join request timed out. Try again later.');
@@ -59,6 +59,7 @@ export class LobbyManager {
 			)
 		);
 	};
+
 	createGame = (state) => {
 		this.socket.emit(
 			'create-game',
@@ -170,11 +171,30 @@ export class LobbyManager {
 		});
 
 		socket.on('available-games-list', (data) => {
-			console.log(data);
 			availableGameArea.innerHTML = '';
 			data.forEach((g) => {
-				addGameTile(g);
+				addGameTile(g.gameManager);
 			});
+		});
+
+		socket.on('message', (data) => {
+			showMessage(data.status, data.message);
+		});
+
+		cancelButton.addEventListener('click', (e) => {
+			if (!e.target.getAttribute('data-id')) return;
+			socket.emit(
+				'cancel-game',
+				null,
+				withTimeout(
+					(data) => {
+						if (data.status !== 'OK') showMessage('error', data.message);
+					},
+					() => {
+						showMessage('error', 'Request timed out. Try again later.');
+					}
+				)
+			);
 		});
 	}
 }

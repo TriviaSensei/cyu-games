@@ -1,8 +1,10 @@
 #game-div.w-100.h-100.d-flex.flex-column.position-relative.d-none
-    #game-message.message-banner.mx-auto.d-flex.flex-row.py-2
-        .spinner-border.me-3(role="status")
-            span.visually-hidden Loading 
-        .m-auto Waiting for opponent(s)...
+    #game-message.message-banner.mx-auto.d-flex.flex-row
+        #waiting-banner.w-100.h-100.d-flex.flex-row.py-2
+            .m-auto Waiting for opponent(s)...
+                button#cancel-game.btn.btn-warning.ms-3 Cancel
+        #status-banner.w-100.h-100.d-flex.flex-row.py-2.d-none
+            #status-content.m-auto Game status
     .f-1.overflow-hidden.position-relative
         button.game-chat-button(type="button" data-bs-toggle="offcanvas" data-bs-target="#game-chat-container" aria-controls="game-chat-container")
             span.badge.position-absolute.top-0.start-0.translate-middle.border.border-light.rounded-circle.d-none(style="padding:.3rem;")
@@ -16,10 +18,7 @@
                 #game-chat-box.chat-box 
                 form#game-chat-form.input-group.mb-2
                     input#game-chat-message.form-control(type="text" autocomplete="off" autocorrect="off" placeholder="Your message" aria-label="message" aria-describedby="send-chat")
-                    button#send-game-chat.btn.btn-secondary(type="submit") Send
-
-                
-                
+                    button#send-game-chat.btn.btn-secondary(type="submit") Send       
         - if (title === 'PushFight')
             include gameBoards/pushfight
         - else if (title === "Liar's Dice")

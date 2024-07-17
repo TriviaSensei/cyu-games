@@ -23,6 +23,7 @@
 	height: 100%;
 	position: relative;
 	display: flex;
+	cursor: pointer;
 }
 
 .game-space.valid-move::after {
@@ -52,7 +53,11 @@
 }
 
 .player-timer {
-	font-size: 2rem;
+	padding-right: 0.5rem;
+}
+
+.active-timer {
+	font-size: 1.5rem;
 }
 
 .game-piece {
@@ -62,6 +67,7 @@
 	transition: top 0.3s, left 0.3s;
 	z-index: 2;
 	transform: translate(-50%, -50%);
+	cursor: pointer;
 }
 
 .white {
@@ -72,6 +78,10 @@
 .black {
 	background-color: var(--black);
 	border: 2px solid var(--white);
+}
+
+.game-piece.selected {
+	border: 2px solid yellow;
 }
 
 .circle {
@@ -85,4 +95,8 @@
 	height: 5%;
 	background-color: red;
 	transform: translate(-50%, -50%);
+}
+
+.player-reserve {
+	padding-bottom: 0.2rem;
 }

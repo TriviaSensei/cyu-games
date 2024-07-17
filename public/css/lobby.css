@@ -180,3 +180,11 @@ input[type='number'] {
 	color: var(--black);
 	text-wrap: nowrap;
 }
+
+.time-alert {
+	background-color: red;
+}
+
+#game-message {
+	height: 3rem;
+}
