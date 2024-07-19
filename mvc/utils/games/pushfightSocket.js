@@ -13,6 +13,13 @@ class PushfightRules {
 		return this.gameState.players;
 	}
 
+	setGameState(data) {
+		this.gameState = {
+			...this.gameState,
+			...data,
+		};
+	}
+
 	addPlayer(user) {
 		//see if the player is already in the game - if so, update their information (possibly a reconnect, so they'll need a new socket ID, etc.)
 		let playerAdded = false;

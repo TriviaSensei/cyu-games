@@ -25,6 +25,10 @@ exports.gameList = [
 		category: 'Other',
 		games: [
 			{
+				displayName: 'Get 10 points',
+				name: 'get10',
+			},
+			{
 				displayName: "Liar's Dice",
 				name: 'liarsdice',
 			},

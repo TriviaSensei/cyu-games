@@ -28,7 +28,7 @@ export class StateHandler {
 		return this.validator(state);
 	}
 
-	addWatcher(obj, updater) {
+	addWatcher(obj, updater, ...once) {
 		if (
 			obj &&
 			this.objects.some((o) => {
@@ -43,7 +43,9 @@ export class StateHandler {
 			updater,
 		});
 		if (obj) {
-			obj.addEventListener(`update-state-${this.id}`, updater);
+			obj.addEventListener(`update-state-${this.id}`, updater, {
+				once: once.length === 1 && once[0].once === true,
+			});
 			const evt = new CustomEvent(`update-state-${this.id}`, {
 				detail: this.state.value,
 			});

@@ -1,0 +1,22 @@
+.w-100.h-100.mw-100.mh-100.d-flex.flex-row
+    #game-info.d-flex.flex-column.justify-content-between.h-100.ps-3.py-3
+        #opponent-tag.player-tag 
+            .player-name ??? 
+            .player-timer-container.d-flex.flex-row.align-items-end
+                .player-timer.me-2.active-timer 0:00
+                .player-reserve 0:00
+        #my-tag.player-tag 
+            .player-name ??? 
+            .player-timer-container.d-flex.flex-row.align-items-end
+                .player-timer.me-2.active-timer 0:00
+                .player-reserve 0:00
+    #game-board-container.d-flex.f-1.overflow-hidden 
+        #game-board.w-100.h-100.d-flex
+            .m-auto.d-flex.flex-column 
+                #score-container 
+                #button-container.d-flex.flex-row 
+                    .m-auto 
+                        button#score-1.btn.btn-primary.me-2(role="button" data-value="1") +1
+                        button#score-2.btn.btn-primary(role="button" data-value="2") +2
+
+

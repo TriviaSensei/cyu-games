@@ -1,0 +1,15 @@
+.player-reserve {
+	padding-bottom: 0.2rem;
+}
+
+.player-timer {
+	padding-right: 0.5rem;
+}
+
+.active-timer {
+	font-size: 1.5rem;
+}
+
+#score-container {
+	font-size: 15rem;
+}

@@ -17,6 +17,7 @@ const { gameList, getGame } = require('../utils/gameList');
 
 const gameManager = {
 	pushfight: require('./games/pushfightSocket'),
+	get10: require('./games/get10Socket'),
 };
 
 /**
@@ -29,8 +30,8 @@ const gameManager = {
  * }
  */
 let connectedUsers = [];
-const mgr = new gameManager['pushfight']({
-	color: 'random',
+const mgr = new gameManager['get10']({
+	go: 'random',
 	timer: 'game',
 	time: 5,
 	increment: 30,
@@ -65,7 +66,7 @@ const mgr = new gameManager['pushfight']({
  */
 let availableGames = [
 	{
-		game: 'pushfight',
+		game: 'get10',
 		gameManager: mgr,
 	},
 ];
@@ -202,12 +203,7 @@ const socket = async (http, server) => {
 				if (!p.user) return;
 				io.to(p.user.socketId).emit('update-game-state', {
 					...gameState,
-					players: gameState.players.map((p2, j) => {
-						return {
-							...p2,
-							isMe: i === j,
-						};
-					}),
+					myIndex: i,
 				});
 			});
 		};
@@ -228,24 +224,21 @@ const socket = async (http, server) => {
 			if (result.playerAdded) {
 				console.log(`${user.name} is joining game ${matchId}`);
 				sendGameUpdate(gameState);
+				//game automatically starts when enough players join
 				if (gameState.status === 'pregame') {
+					io.to(user.gameId).emit('cancel-game', { id: matchId });
+					activeGames.push(game);
+					availableGames = availableGames.filter((g) => {
+						return g.gameManager.getMatchId() !== matchId;
+					});
 					setTimeout(() => {
-						game.gameManager.gameState.status = 'playing';
-						game.gameManager.gameState.message = null;
-						game.gameManager.gameState.turnStart = Date.now();
-						const gs = game.gameManager.getGameState();
-						gs.players.forEach((p) => {
-							io.to(p.user.socketId).emit('update-game-state', {
-								...gs,
-								players: gs.players.map((p2) => {
-									return {
-										...p2,
-										isMe: p.user.id === p2.user.id,
-									};
-								}),
-								turnStart: Date.now(),
-							});
+						game.gameManager.setGameState({
+							status: 'playing',
+							message: null,
+							turnStart: Date.now(),
 						});
+						const gs = game.gameManager.getGameState();
+						sendGameUpdate(gs);
 					}, pregameLength);
 				}
 			}
@@ -253,23 +246,12 @@ const socket = async (http, server) => {
 			else {
 				console.log(`${user.name} is rejoining game ${matchId}`);
 				const data = game.gameManager.getGameState();
-				const timeElapsedThisTurn = Date.now() - data.turnStart;
-				data.players = data.players.map((p, i) => {
-					return {
-						...p,
-						time:
-							i !== data.turnsCompleted % 2
-								? p.time
-								: Math.max(0, p.time - timeElapsedThisTurn),
-						reserve:
-							i !== data.turnsCompelted % 2
-								? p.reserve
-								: Math.max(0, p.reserve - timeElapsedThisTurn + p.time),
-						isMe: p.user !== null && p.user.socketId === socket.id,
-					};
+				io.to(socket.id).emit('update-game-state', {
+					...data,
+					myIndex: data.players.findIndex((p) => {
+						return p.user.id === user.id;
+					}),
 				});
-				data.timeStamp = Date.now();
-				io.to(socket.id).emit('update-game-state', data);
 			}
 		};
 		//see if the user is part of an active game
@@ -311,8 +293,14 @@ const socket = async (http, server) => {
 		});
 
 		socket.on('create-game', (data, cb) => {
+			console.log('creating game');
 			//is this person playing a game or already waiting for one?
 			const user = getConnectedUser(socket.id);
+			if (!user)
+				return cb({
+					status: 'fail',
+					message: 'User not found. Try logging in again.',
+				});
 			if (user.matchId) {
 				return cb({ status: 'fail', message: 'You are already in a game.' });
 			}
@@ -340,20 +328,18 @@ const socket = async (http, server) => {
 					gameManager: gm,
 				});
 				socket.to(user.gameId).emit('available-new-game', gm);
-				socket.join(gm.gameManager.getMatchId());
+				socket.join(gm.getMatchId());
 				cb({ status: 'OK' });
 				setUserData({ matchId: gm.getMatchId() });
 				const gs = gm.getGameState();
 				return io.to(socket.id).emit('update-game-state', {
 					...gs,
-					players: gs.players.map((p) => {
-						return {
-							...p,
-							isMe: p.user !== null && p.user.id === user.id,
-						};
+					myIndex: gs.players.findIndex((p) => {
+						return p.id === user.id;
 					}),
 				});
 			} catch (err) {
+				console.log(err);
 				cb({
 					status: 'fail',
 					message: err.message,
@@ -402,6 +388,27 @@ const socket = async (http, server) => {
 			if (!gameToJoin) return cb({ status: 'fail', message: 'Game not found' });
 			cb({ status: 'OK' });
 			joinGame(gameToJoin);
+		});
+
+		socket.on('play-move', (data, cb) => {
+			const user = getConnectedUser(socket.id);
+			if (!user) return cb({ status: 'fail', message: 'User not found.' });
+			if (!user.matchId)
+				return cb({ status: 'fail', message: 'You are not in a game.' });
+			const game = activeGames.find((g) => {
+				return g.gameManager.getMatchId() === user.matchId;
+			});
+			if (!game)
+				return cb({ status: 'fail', message: 'Game not active or not found' });
+
+			const result = game.gameManager.playMove({
+				user,
+				...data,
+			});
+
+			cb(result);
+
+			if (result.status === 'OK') sendGameUpdate(result.gameState);
 		});
 
 		socket.on('disconnect', (reason) => {
