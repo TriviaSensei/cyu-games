@@ -28,11 +28,13 @@ export class TimerManager {
 			});
 			if (!player) return;
 
-			//put the correct value on the timer
+			//put the correct value on the timer(s)
 			const timeLeft = this.getTimerValue(player);
-			const timeStr = this.getTimeString(timeLeft);
-			if (!t.timer) return;
+
+			const timeStr = this.getTimeString(timeLeft.time);
 			t.timer.innerHTML = timeStr;
+			const reserveStr = this.getTimeString(timeLeft.reserve);
+			t.reserve.innerHTML = reserveStr;
 
 			//if it's not this player's turn, stop running their clock
 			if (playerIndex !== turn) {
@@ -48,8 +50,18 @@ export class TimerManager {
 				if (!t.interval)
 					t.interval = setInterval(() => {
 						const timeElapsed = Date.now() - t.startTime;
-						const timeLeft = Math.max(t.initialValue - timeElapsed, 0);
+						const timeLeft = Math.max(t.initialValue.time - timeElapsed, 0);
 						t.timer.innerHTML = this.getTimeString(timeLeft);
+						if (t.setting === 'move') {
+							const reserveLeft =
+								timeLeft > 0
+									? t.initialValue.reserve
+									: Math.max(
+											0,
+											t.initialValue.reserve - timeElapsed + t.initialValue.time
+									  );
+							t.reserve.innerHTML = this.getTimeString(reserveLeft);
+						}
 					}, 1000);
 			}
 		});
@@ -62,7 +74,7 @@ export class TimerManager {
 	 * @param getTurn
 	 *      a function that takes a gameState, and returns the index of the player whose turn it is
 	 * @param getTimerValue
-	 *      a function that takes a player from gameState.players, and returns the number of milliseconds on their timer (e.g. whether
+	 *      a function that takes a player from gameState.players and amount of time elapsed, and returns the number of milliseconds on their timer (e.g. whether
 	 *      we should use player.timeLeft, player.reserve, etc.)
 	 */
 	constructor(mapper, getTurn, getTimerValue, initialState) {
@@ -72,10 +84,15 @@ export class TimerManager {
 		this.timers = initialState.players.map((p) => {
 			return {
 				id: p.user.id,
-				timer: this.mapper(p),
+				timer: this.mapper(p).querySelector('.player-timer'),
+				reserve: this.mapper(p).querySelector('.player-reserve'),
+				setting: p.timer,
 				interval: null,
 				startTime: null,
-				initialValue: this.getTimerValue(p),
+				initialValue: {
+					time: p.time,
+					reserve: p.reserve,
+				},
 			};
 		});
 		this.updateState(initialState);

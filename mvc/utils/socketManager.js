@@ -17,7 +17,7 @@ const { gameList, getGame } = require('../utils/gameList');
 
 const gameManager = {
 	pushfight: require('./games/pushfightSocket'),
-	get10: require('./games/get10Socket'),
+	get10: require('./games/get10Manager'),
 };
 
 /**
@@ -32,10 +32,10 @@ const gameManager = {
 let connectedUsers = [];
 const mgr = new gameManager['get10']({
 	go: 'random',
-	timer: 'game',
-	time: 5,
+	timer: 'move',
+	time: 0.1,
 	increment: 30,
-	reserve: 10,
+	reserve: 0,
 	host: {
 		id: '667cb17b0a7be772a5b2220e',
 		name: 'Chuck',
@@ -245,7 +245,7 @@ const socket = async (http, server) => {
 			//otherwise, send it to just the player who rejoined
 			else {
 				console.log(`${user.name} is rejoining game ${matchId}`);
-				const data = game.gameManager.getGameState();
+				const data = game.gameManager.refreshGameState();
 				io.to(socket.id).emit('update-game-state', {
 					...data,
 					myIndex: data.players.findIndex((p) => {
@@ -390,7 +390,104 @@ const socket = async (http, server) => {
 			joinGame(gameToJoin);
 		});
 
-		socket.on('play-move', (data, cb) => {
+		const updateRatings = async (game, result) => {
+			const players = await Promise.all(
+				result.gameState.ranking.map((p) => {
+					return User.findById(p.user.id);
+				})
+			);
+
+			await Promise.all(
+				players.map((p) => {
+					const rating = p.ratings.find((r) => {
+						return r.game === game.game;
+					});
+					if (!rating) {
+						p.ratings.push({
+							game: game.game,
+							rating: 1200,
+							games: 0,
+						});
+						return p.save({
+							validateBeforeSave: false,
+						});
+					} else {
+						return p;
+					}
+				})
+			);
+
+			const ratingChanges = players.map((p, i) => {
+				const r = p.ratings.find((g) => {
+					return g.game === game.game;
+				});
+
+				return {
+					rank: result.gameState.ranking[i].rank,
+					oldRating: r.rating || 1200,
+					newRating: r.rating || 1200,
+					games: r.games,
+				};
+			});
+
+			ratingChanges.forEach((p1, i) => {
+				let ratingChange = 0;
+				const K = p1.games < 20 ? 32 : p1.games < 100 ? 16 : 8;
+				ratingChanges.forEach((p2, j) => {
+					if (i === j) return;
+					//result: 1 for win, 0 for loss, 0.5 for draw
+					const result = p1.rank < p2.rank ? 1 : p1.rank === p2.rank ? 0.5 : 0;
+					const pWin =
+						1 / (1 + Math.pow(10, (p1.oldRating - p2.oldRating) / 400));
+					ratingChange = ratingChange + K * (result - pWin);
+				});
+				p1.newRating = Math.max(100, p1.oldRating + Math.round(ratingChange));
+			});
+			result.gameState.ranking.forEach((r, i) => {
+				r.oldRating = ratingChanges[i].oldRating;
+				r.newRating = ratingChanges[i].newRating;
+			});
+			await Promise.all(
+				result.gameState.ranking.map(async (r) => {
+					const user = await User.findById(r.user.id);
+					if (!user) return;
+					user.ratings.some((g) => {
+						if (g.game === game.game) {
+							g.rating = r.newRating;
+							g.games = g.games + 1;
+							return true;
+						}
+					});
+					//update their rating in the array as well
+					connectedUsers.some((u) => {
+						if (u.id === user._id.toString()) {
+							u.rating.rating = r.newRating;
+							u.rating.games++;
+							return true;
+						}
+					});
+					user.markModified('ratings');
+					return user.save({ validateBeforeSave: false });
+				})
+			);
+		};
+
+		const handleEndGame = async (game, result) => {
+			console.log(result);
+
+			await updateRatings(game, result);
+
+			result.gameState.players.forEach((p) => {
+				const user = getConnectedUser(p.user.socketId);
+				user.matchId = null;
+			});
+
+			activeGames = activeGames.filter((g) => {
+				return g.gameManager.getMatchId() !== game.gameManager.getMatchId();
+			});
+		};
+
+		socket.on('play-move', async (data, cb) => {
 			const user = getConnectedUser(socket.id);
 			if (!user) return cb({ status: 'fail', message: 'User not found.' });
 			if (!user.matchId)
@@ -399,8 +496,12 @@ const socket = async (http, server) => {
 				return g.gameManager.getMatchId() === user.matchId;
 			});
 			if (!game)
-				return cb({ status: 'fail', message: 'Game not active or not found' });
-
+				return cb({ status: 'fail', message: 'Game not found or not active' });
+			else {
+				const state = game.gameManager.getGameState();
+				if (state.status === 'ended')
+					return cb({ status: 'fail', message: 'This game has ended' });
+			}
 			const result = game.gameManager.playMove({
 				user,
 				...data,
@@ -408,7 +509,28 @@ const socket = async (http, server) => {
 
 			cb(result);
 
-			if (result.status === 'OK') sendGameUpdate(result.gameState);
+			if (result.status === 'OK') {
+				if (game.timeout) {
+					clearTimeout(game.timeout);
+				}
+				if (result.gameState.status === 'ended') {
+					await handleEndGame(game, result);
+				} else {
+					const turn = game.gameManager.getTurn(result.gameState);
+					if (result.gameState.timeout >= 0) {
+						game.timeout = setTimeout(async () => {
+							const timeoutResult = game.gameManager.removePlayer(
+								turn,
+								'timeout'
+							);
+							if (timeoutResult.gameState.status === 'ended')
+								await handleEndGame(game, timeoutResult);
+							sendGameUpdate(timeoutResult.gameState);
+						}, result.gameState.timeout);
+					}
+				}
+				sendGameUpdate(result.gameState);
+			}
 		});
 
 		socket.on('disconnect', (reason) => {

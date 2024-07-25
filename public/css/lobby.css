@@ -188,3 +188,16 @@ input[type='number'] {
 #game-message {
 	height: 3rem;
 }
+
+li.winner::after {
+	content: '🥇';
+	margin-left: 1rem;
+}
+li.second::after {
+	content: '🥈';
+	margin-left: 1rem;
+}
+li.third::after {
+	content: '🥉';
+	margin-left: 1rem;
+}

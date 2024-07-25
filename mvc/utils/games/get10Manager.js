@@ -1,9 +1,10 @@
 const { v4: uuidV4 } = require('uuid');
 const GameManager = require('./gameManager');
 
-class get10Rules extends GameManager {
+class Get10Manager extends GameManager {
 	verifySettings(settings) {
 		let message = '';
+		return;
 		if (!['first', 'second', 'random'].includes(settings.go))
 			message = 'Invalid order specified';
 		else if (!['game', 'move', 'off'].includes(settings.timer))
@@ -23,6 +24,7 @@ class get10Rules extends GameManager {
 	}
 
 	startGame() {
+		if (this.gameState.status !== 'waiting') return null;
 		super.setGameState({
 			active: true,
 			status: 'pregame',
@@ -41,7 +43,34 @@ class get10Rules extends GameManager {
 		) {
 			this.gameState.players.unshift(this.gameState.players.pop());
 		}
+		this.incrementTurn();
 		return this.gameState;
+	}
+
+	removePlayer(ind, reason) {
+		console.log(`Removing player ${ind} (${reason})`);
+		if ((ind !== 0) & (ind !== 1)) return this.gameState;
+
+		const currentState = super.getGameState();
+		if (!currentState.active && currentState.status !== 'playing')
+			return this.gameState;
+
+		const winner = 1 - ind;
+		const endGameString = `${currentState.players[winner].user.name} wins (${reason})`;
+
+		super.setGameState({
+			status: 'ended',
+			winner,
+			endGameString,
+			ranking: [
+				{ ...currentState.players[winner], rank: 1 },
+				{ ...currentState.players[1 - winner], rank: 2 },
+			],
+		});
+		return {
+			status: 'OK',
+			gameState: this.getGameState(),
+		};
 	}
 
 	addPlayer(user) {
@@ -66,11 +95,17 @@ class get10Rules extends GameManager {
 		const player = currentState.players.findIndex((p) => {
 			return p.user.id === move.user.id;
 		});
-		if (!currentState.active || currentState.status !== 'playing')
+		if (!currentState.active || currentState.status === 'pregame')
 			return {
 				status: 'fail',
 				gameState: currentState,
 				message: 'Game has not started.',
+			};
+		else if (currentState.status === 'ended')
+			return {
+				status: 'fail',
+				gameState: currentState,
+				message: 'Game has ended.',
 			};
 		//check if the move was legal - this game has very simple rules, so every move is legal if it's your turn
 		if (player !== currentState.turnsCompleted % 2)
@@ -87,13 +122,20 @@ class get10Rules extends GameManager {
 				gameState: currentState,
 				message: 'You may not go over 10 points.',
 			};
-		else if (points === 10)
+		else if (points === 10) {
 			//end game state
+			const winner = currentState.turnsCompleted % 2;
 			super.setGameState({
 				points,
 				status: 'ended',
-				winner: currentState.turnsCompleted % 2,
+				winner,
+				endGameString: `${currentState.players[winner].user.name} wins!`,
+				ranking: [
+					{ ...currentState.players[winner], rank: 1 },
+					{ ...currentState.players[1 - winner], rank: 2 },
+				],
 			});
+		}
 		//the move was legal but the game did not reach end state
 		else
 			super.setGameState({
@@ -124,6 +166,7 @@ class get10Rules extends GameManager {
 
 		this.gameState = {
 			active: false,
+			status: 'waiting',
 			players: [
 				{
 					...timerState,
@@ -136,7 +179,7 @@ class get10Rules extends GameManager {
 					user: settings.go === 'second' ? settings.host : null,
 				},
 			],
-			turnsCompleted: 0,
+			turnsCompleted: -1,
 			points: 0,
 		};
 		// this.timerManager = new TimerManager(this, (gameState) => {
@@ -145,4 +188,4 @@ class get10Rules extends GameManager {
 	}
 }
 
-module.exports = get10Rules;
+module.exports = Get10Manager;

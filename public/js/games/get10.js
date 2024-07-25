@@ -35,6 +35,12 @@ const scoreContainer = document.querySelector('#score-container');
 const button1 = document.querySelector('#score-1');
 const button2 = document.querySelector('#score-2');
 
+const endGameModal = new bootstrap.Modal(
+	document.querySelector('#end-game-modal')
+);
+const endGameBody = document.querySelector('#end-game-modal .modal-body');
+const rematch = document.querySelector('#offer-rematch');
+
 const newGameState = new StateHandler({
 	game: 'get10',
 	go: 'random',
@@ -234,6 +240,24 @@ document.addEventListener('DOMContentLoaded', () => {
 		else {
 			gameState.setState(data);
 		}
+
+		if (data.status === 'ended') {
+			const header = createElement('h3');
+			header.innerHTML = data.endGameString;
+			const list = createElement('ol');
+			data.ranking.forEach((p) => {
+				const item = createElement('li');
+				item.innerHTML = `${p.user.name} (${p.oldRating} &rarr; ${p.newRating})`;
+				if (p.rank === 1) item.classList.add('winner');
+				else if (p.rank === 2) item.classList.add('second');
+				else if (p.rank === 3) item.classList.add('third');
+				list.appendChild(item);
+			});
+			endGameBody.innerHTML = '';
+			endGameBody.appendChild(header);
+			endGameBody.appendChild(list);
+			endGameModal.show();
+		}
 	});
 
 	gameState.addWatcher(scoreContainer, (e) => {
@@ -241,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		e.target.innerHTML = e.detail.points;
 	});
 
+	//clock and user tag manager
 	let timerManager;
 	gameState.addWatcher(null, (state) => {
 		if (!state) return;
@@ -255,34 +280,42 @@ document.addEventListener('DOMContentLoaded', () => {
 			theirTag.setAttribute('data-id', opp.user.id);
 		}
 
-		if (!state.active) {
-			const startTime = state.players[0].time;
-			const timeStr = getTimeString(startTime);
-			myClock.innerHTML = timeStr;
-			theirClock.innerHTML = timeStr;
-			const startReserve = state.players[0].reserve;
-			const reserveStr = getTimeString(startReserve);
-			myReserve.innerHTML = reserveStr;
-			theirReserve.innerHTML = reserveStr;
-		} else if (state.status === 'pregame') {
-			const mapper = (p) => {
-				const id = p.user.id;
-				const element = document.querySelector(
-					`.player-tag[data-id="${id}"] .player-timer`
-				);
-				return element;
-			};
-			const getTurn = (state) => {
-				if (!state.active || state.status !== 'playing') return -1;
-				return state.turnsCompleted % 2;
-			};
-			const getTimerValue = (p) => {
-				return p.time;
-			};
+		const startTime = state.players[0].time;
+		const timeStr = getTimeString(startTime);
+		myClock.innerHTML = timeStr;
+		theirClock.innerHTML = timeStr;
+		const startReserve = state.players[0].reserve;
+		const reserveStr = getTimeString(startReserve);
+		myReserve.innerHTML = reserveStr;
+		theirReserve.innerHTML = reserveStr;
 
-			if (!timerManager)
-				timerManager = new TimerManager(mapper, getTurn, getTimerValue, state);
-		}
+		if (
+			state.players.every((p) => {
+				return p.user !== null;
+			})
+		)
+			if (!timerManager) {
+				const mapper = (p) => {
+					const id = p.user.id;
+					return document.querySelector(`.player-tag[data-id="${id}"]`);
+				};
+				const getTurn = (state) => {
+					if (!state.active || state.status !== 'playing') return -1;
+					return state.turnsCompleted % 2;
+				};
+
+				timerManager = new TimerManager(
+					mapper,
+					getTurn,
+					(player) => {
+						return {
+							time: player.time,
+							reserve: player.reserve,
+						};
+					},
+					state
+				);
+			}
 	});
 
 	gameState.addWatcher(null, (state) => {
@@ -300,7 +333,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		else e.target.classList.remove('d-none');
 		const content = e.target.querySelector('#status-content');
 		if (!content) return;
-		if (e.detail.myIndex === e.detail.turnsCompleted % 2)
+		if (e.detail.status === 'ended') content.innerHTML = 'Game over';
+		else if (e.detail.myIndex === e.detail.turnsCompleted % 2)
 			content.innerHTML = 'Your turn';
 		else
 			content.innerHTML = `${
@@ -316,6 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			{ value },
 			withTimeout((data) => {
 				if (data.status !== 'OK') showMessage('error', data.message);
+				console.log(data);
 			}, timeoutMessage)
 		);
 	};

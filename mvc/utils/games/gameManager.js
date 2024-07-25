@@ -39,6 +39,18 @@ class GameManager {
 		});
 	}
 
+	removePlayer(ind, reason) {}
+
+	/**
+	 *
+	 * @param {*} user
+	 * @returns {
+	 * 	playerAdded: whether a player was added (if not, this was probably just a reconnecting player)
+	 *  playerUpdated: whether a player was updated due to a reconnect
+	 *  status: 'OK',
+	 *  gameState: the new game state
+	 * }
+	 */
 	addPlayer(user) {
 		//see if the player is already in the game - if so, update their information (possibly a reconnect, so they'll need a new socket ID, etc.)
 		let playerAdded = false;
@@ -83,20 +95,53 @@ class GameManager {
 		};
 	}
 
+	refreshGameState() {
+		if (!this.gameState) return null;
+		if (this.gameState.status !== 'playing') return this.gameState;
+
+		const timerSetting = this.settings.timer;
+		const turn = this.getTurn(this.gameState);
+
+		if (timerSetting === 'off') return this.gameState;
+
+		const timeElapsed = Date.now() - this.gameState.turnStart;
+
+		this.setGameState({
+			players: this.gameState.players.map((p, i) => {
+				if (i === turn)
+					return {
+						...p,
+						time: Math.max(0, p.time - timeElapsed),
+						reserve:
+							this.settings.timer === 'move'
+								? p.reserve -
+								  Math.max(0, timeElapsed - this.settings.time * 60000)
+								: 0,
+					};
+				return p;
+			}),
+			turnStart: Date.now(),
+		});
+		return this.gameState;
+	}
+
 	incrementTurn() {
 		if (!this.gameState) return;
-		if (!this.gameState.status === 'playing') return;
+
 		const timerSetting = this.settings.timer;
 		const oldTurn = this.getTurn(this.gameState);
+		const currentTurn = this.gameState.turnsCompleted + 1;
 
 		if (timerSetting === 'off') {
 			this.setGameState({
 				...this.gameState,
-				turnsCompleted: gameState.turnsCompleted + 1,
+				turnsCompleted: currentTurn,
 			});
+			return;
 		}
 
-		const timeElapsed = Date.now() - this.gameState.turnStart;
+		const timeElapsed =
+			currentTurn === 0 ? 0 : Date.now() - this.gameState.turnStart;
 
 		this.setGameState({
 			turnsCompleted: this.gameState.turnsCompleted + 1,
@@ -107,10 +152,11 @@ class GameManager {
 						time:
 							this.settings.timer === 'game'
 								? Math.max(0, p.time - timeElapsed + this.settings.increment)
-								: this.settings.time,
+								: this.settings.time * 60000,
 						reserve:
 							this.settings.timer === 'move'
-								? p.reserve - Math.max(0, timeElapsed - this.settings.time)
+								? p.reserve -
+								  Math.max(0, timeElapsed - this.settings.time * 60000)
 								: 0,
 					};
 				return p;
@@ -118,9 +164,16 @@ class GameManager {
 		});
 
 		const turn = this.getTurn(this.getGameState());
+		const currentPlayer = this.gameState.players[turn];
 		this.setGameState({
 			...this.gameState,
 			turnStart: Date.now(),
+			timeout:
+				this.settings.timer === 'game'
+					? currentPlayer.time
+					: this.settings.timer === 'move'
+					? currentPlayer.time + currentPlayer.reserve
+					: -1,
 		});
 	}
 
