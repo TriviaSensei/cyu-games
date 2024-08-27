@@ -1,0 +1,242 @@
+:root {
+	--transition-length: 0.4s;
+}
+
+.card-container {
+	min-width: max(72px, 13.5vw);
+	min-height: min(112px, 21vw);
+	max-width: min(13.5vw, 108px);
+	max-height: min(21vw, 168px);
+}
+
+.playing-card {
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+	background-position: 0 0;
+	width: 100%;
+	height: 100%;
+}
+
+.card-container.moving {
+	transition: transform var(--transition-length);
+	position: absolute;
+	left: 0;
+	top: 0;
+	z-index: 100;
+}
+
+.flip-card {
+	perspective: 1000px;
+	background-color: transparent;
+}
+
+.flip-card-inner {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	transition: 0.3s;
+	transform-style: preserve-3d;
+	/* box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); */
+}
+
+/* .flip-card:hover .flip-card-inner, */
+.flip-card.shown .flip-card-inner {
+	transform: rotateY(180deg);
+}
+
+.flip-card-back,
+.flip-card-front {
+	height: 100%;
+	width: 100%;
+	position: absolute;
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+}
+
+.flip-card-front {
+	transform: rotateY(180deg);
+}
+.flip-card-back,
+.flipped {
+	background-image: url('/img/cards/1B.svg');
+}
+
+.r-a.s-s,
+.r-1.s-s {
+	background-image: url('/img/cards/AS.svg');
+}
+.r-2.s-s {
+	background-image: url('/img/cards/2S.svg');
+}
+.r-3.s-s {
+	background-image: url('/img/cards/3S.svg');
+}
+.r-4.s-s {
+	background-image: url('/img/cards/4S.svg');
+}
+.r-5.s-s {
+	background-image: url('/img/cards/5S.svg');
+}
+.r-6.s-s {
+	background-image: url('/img/cards/6S.svg');
+}
+.r-7.s-s {
+	background-image: url('/img/cards/7S.svg');
+}
+.r-8.s-s {
+	background-image: url('/img/cards/8S.svg');
+}
+.r-9.s-s {
+	background-image: url('/img/cards/9S.svg');
+}
+.r-t.s-s,
+.r-10.s-s {
+	background-image: url('/img/cards/TS.svg');
+}
+.r-j.s-s,
+.r-11.s-s {
+	background-image: url('/img/cards/JS.svg');
+}
+.r-q.s-s,
+.r-12.s-s {
+	background-image: url('/img/cards/QS.svg');
+}
+.r-k.s-s,
+.r-13.s-s {
+	background-image: url('/img/cards/KS.svg');
+}
+
+.r-a.s-h,
+.r-1.s-h {
+	background-image: url('/img/cards/AH.svg');
+}
+.r-2.s-h {
+	background-image: url('/img/cards/2H.svg');
+}
+.r-3.s-h {
+	background-image: url('/img/cards/3H.svg');
+}
+.r-4.s-h {
+	background-image: url('/img/cards/4H.svg');
+}
+.r-5.s-h {
+	background-image: url('/img/cards/5H.svg');
+}
+.r-6.s-h {
+	background-image: url('/img/cards/6H.svg');
+}
+.r-7.s-h {
+	background-image: url('/img/cards/7H.svg');
+}
+.r-8.s-h {
+	background-image: url('/img/cards/8H.svg');
+}
+.r-9.s-h {
+	background-image: url('/img/cards/9H.svg');
+}
+.r-t.s-h,
+.r-10.s-h {
+	background-image: url('/img/cards/TH.svg');
+}
+.r-j.s-h,
+.r-11.s-h {
+	background-image: url('/img/cards/JH.svg');
+}
+.r-q.s-h,
+.r-12.s-h {
+	background-image: url('/img/cards/QH.svg');
+}
+.r-k.s-h,
+.r-13.s-h {
+	background-image: url('/img/cards/KH.svg');
+}
+
+.r-a.s-d,
+.r-1.s-d {
+	background-image: url('/img/cards/AD.svg');
+}
+.r-2.s-d {
+	background-image: url('/img/cards/2D.svg');
+}
+.r-3.s-d {
+	background-image: url('/img/cards/3D.svg');
+}
+.r-4.s-d {
+	background-image: url('/img/cards/4D.svg');
+}
+.r-5.s-d {
+	background-image: url('/img/cards/5D.svg');
+}
+.r-6.s-d {
+	background-image: url('/img/cards/6D.svg');
+}
+.r-7.s-d {
+	background-image: url('/img/cards/7D.svg');
+}
+.r-8.s-d {
+	background-image: url('/img/cards/8D.svg');
+}
+.r-9.s-d {
+	background-image: url('/img/cards/9D.svg');
+}
+.r-t.s-d,
+.r-10.s-d {
+	background-image: url('/img/cards/TD.svg');
+}
+.r-j.s-d,
+.r-11.s-d {
+	background-image: url('/img/cards/JD.svg');
+}
+.r-q.s-d,
+.r-12.s-d {
+	background-image: url('/img/cards/QD.svg');
+}
+.r-k.s-d,
+.r-13.s-d {
+	background-image: url('/img/cards/KD.svg');
+}
+
+.r-a.s-c,
+.r-1.s-c {
+	background-image: url('/img/cards/AC.svg');
+}
+.r-2.s-c {
+	background-image: url('/img/cards/2C.svg');
+}
+.r-3.s-c {
+	background-image: url('/img/cards/3C.svg');
+}
+.r-4.s-c {
+	background-image: url('/img/cards/4C.svg');
+}
+.r-5.s-c {
+	background-image: url('/img/cards/5C.svg');
+}
+.r-6.s-c {
+	background-image: url('/img/cards/6C.svg');
+}
+.r-7.s-c {
+	background-image: url('/img/cards/7C.svg');
+}
+.r-8.s-c {
+	background-image: url('/img/cards/8C.svg');
+}
+.r-9.s-c {
+	background-image: url('/img/cards/9C.svg');
+}
+.r-t.s-c,
+.r-10.s-c {
+	background-image: url('/img/cards/TC.svg');
+}
+.r-j.s-c,
+.r-11.s-c {
+	background-image: url('/img/cards/JC.svg');
+}
+.r-q.s-c,
+.r-12.s-c {
+	background-image: url('/img/cards/QC.svg');
+}
+.r-k.s-c,
+.r-13.s-c {
+	background-image: url('/img/cards/KC.svg');
+}

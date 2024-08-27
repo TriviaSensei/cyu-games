@@ -1,0 +1,196 @@
+@import url('/css/games/_cards.css');
+
+body {
+	position: relative;
+}
+
+.message {
+	position: absolute;
+	z-index: 2000;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: fit-content;
+	width: -moz-fit-content;
+	border-radius: 5px;
+	border: 1px solid black;
+	background-color: white;
+	padding: 10px;
+	opacity: 1;
+	font-weight: bold;
+	transition: opacity 0.25s ease-in-out;
+	-moz-transition: opacity 0.25s ease-in-out;
+	-webkit-transition: opacity 0.25s ease-in-out;
+	color: black;
+	background-color: #d9ffd6;
+}
+
+.player-tag {
+	display: flex;
+	flex-direction: row;
+}
+.player-info {
+	padding-left: 1rem;
+	padding-right: 1rem;
+}
+
+.player-area {
+	flex: 2;
+	display: flex;
+	position: relative;
+}
+
+#my-area .player-tag {
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+#opponent-area .player-tag {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+}
+
+.middle-area {
+	flex: 1;
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-start;
+	align-items: center;
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+	position: relative;
+}
+
+.player-reserve {
+	padding-bottom: 0.2rem;
+}
+
+.player-timer {
+	padding-right: 0.5rem;
+}
+
+.active-timer {
+	font-size: 1.5rem;
+}
+
+.score-display {
+	font-size: 1.5rem;
+	font-weight: bold;
+}
+
+.crib-indicator {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	margin-right: 1rem;
+}
+
+.crib-indicator.my-crib {
+	align-items: flex-end;
+}
+
+.crib {
+	height: 50%;
+	display: flex;
+}
+
+.crib::after {
+	content: 'CRIB ▶';
+	margin: auto;
+}
+
+.score-tag {
+	font-size: 1.5rem;
+	font-weight: bold;
+	padding-left: 1rem;
+	padding-right: 1rem;
+	width: 3rem;
+	display: flex;
+	border-left: 1px solid white;
+}
+
+.deck-container {
+	height: 100%;
+	display: flex;
+	position: relative;
+}
+
+.deck-container > .playing-card {
+	display: flex;
+}
+
+.peg-count {
+	margin: auto;
+	display: flex;
+	flex-direction: column;
+	background-color: white;
+	color: black;
+	border-radius: 3px;
+	padding: 0.3rem;
+}
+
+.play-container {
+	max-height: 100%;
+	.card-container {
+		position: absolute;
+	}
+	.my-card {
+		top: 5%;
+	}
+	.their-card {
+		top: -5%;
+	}
+	.card-container:nth-child(1) {
+		transform: translate(0%);
+	}
+	.card-container:nth-child(2) {
+		transform: translate(20%);
+		z-index: 2;
+	}
+	.card-container:nth-child(3) {
+		transform: translate(40%);
+		z-index: 3;
+	}
+	.card-container:nth-child(4) {
+		transform: translate(60%);
+		z-index: 4;
+	}
+	.card-container:nth-child(5) {
+		transform: translate(80%);
+		z-index: 5;
+	}
+	.card-container:nth-child(6) {
+		transform: translate(100%);
+		z-index: 6;
+	}
+	.card-container:nth-child(7) {
+		transform: translate(120%);
+		z-index: 7;
+	}
+	.card-container:nth-child(8) {
+		transform: translate(140%);
+		z-index: 8;
+	}
+	.card-container:nth-child(9) {
+		transform: translate(160%);
+		z-index: 9;
+	}
+	.card-container:nth-child(10) {
+		transform: translate(180%);
+		z-index: 10;
+	}
+	.card-container:nth-child(11) {
+		transform: translate(200%);
+		z-index: 11;
+	}
+	.card-container:nth-child(12) {
+		transform: translate(220%);
+		z-index: 11;
+	}
+	.card-container:nth-child(13) {
+		transform: translate(240%);
+		z-index: 11;
+	}
+}

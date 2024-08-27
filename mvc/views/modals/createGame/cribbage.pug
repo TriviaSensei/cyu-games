@@ -1,0 +1,44 @@
+
+form#create-game-form
+    .input-row 
+        .input-label 
+            .input-label-content Target
+        .input-container 
+            input#game-61(type="radio" value="61" name="target")
+            label(for="game-61") 61 
+            input#game-121(type="radio" value="121" name="target")
+            label(for="game-121") 121
+    .input-row 
+        .input-label 
+            .input-label-content Timer
+        .input-container 
+            input#timer-game(type="radio" value="true" name="timer")
+            label(for="timer-game") On 
+            input#timer-off(type="radio" value="false" name="timer")
+            label(for="timer-off") Off
+    #timer-settings-area.d-flex.flex-column 
+        .input-row 
+            .input-label
+                .input-label-content Time per move (sec)
+            .input-container 
+                input#time(type="number" min="15" max="60")
+        .input-row 
+            .input-label 
+                a(data-bs-toggle="tooltip")
+                    img.help(src="/img/help.svg")
+                #adjustment-type.input-label-content Reserve (min)
+            .f-1.d-flex.flex-column
+                input#adjustment(type="number" min="0")   
+    .input-row 
+        .card-container.ratio(style="--bs-aspect-ratio:155%;")
+            .playing-card.flip-card 
+                .flip-card-inner 
+                    .flip-card-back
+                    .flip-card-front.r-a.s-s
+        .card-container.ratio(style="--bs-aspect-ratio:155%;")
+            .playing-card.r-a.s-s
+        .card-container.ratio(style="--bs-aspect-ratio:155%;")
+            .playing-card.flipped 
+        
+        
+            

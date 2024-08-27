@@ -1,10 +1,9 @@
 const { v4: uuidV4 } = require('uuid');
-const GameManager = require('./gameManager');
+const GameManager = require('./_gameManager');
 
 class Get10Manager extends GameManager {
 	verifySettings(settings) {
 		let message = '';
-		return;
 		if (!['first', 'second', 'random'].includes(settings.go))
 			message = 'Invalid order specified';
 		else if (!['game', 'move', 'off'].includes(settings.timer))
@@ -23,75 +22,14 @@ class Get10Manager extends GameManager {
 		if (message) throw new Error(message);
 	}
 
-	startGame() {
-		if (this.gameState.status !== 'waiting') return null;
-		super.setGameState({
-			active: true,
-			status: 'pregame',
-			message: { status: 'info', message: 'Game starting...', duration: 3000 },
-		});
-		if (this.settings.go === 'random') {
-			const a = Math.random();
-			if (a < 0.5) {
-				this.gameState.players.unshift(this.gameState.players.pop());
-			}
-		} else if (
-			(this.settings.go === 'first' &&
-				this.gameState.players[0].id !== this.host.id) ||
-			(this.settings.go === 'second' &&
-				this.gameState.players[1].id !== this.host.id)
-		) {
-			this.gameState.players.unshift(this.gameState.players.pop());
-		}
-		this.incrementTurn();
-		return this.gameState;
+	getTurn(gameState) {
+		if (!gameState && !this.getGameState()) return -1;
+		if (!gameState) return this.getTurn(this.getGameState());
+		return gameState.turnsCompleted % 2;
 	}
 
-	removePlayer(ind, reason) {
-		console.log(`Removing player ${ind} (${reason})`);
-		if ((ind !== 0) & (ind !== 1)) return this.gameState;
-
-		const currentState = super.getGameState();
-		if (!currentState.active && currentState.status !== 'playing')
-			return this.gameState;
-
-		const winner = 1 - ind;
-		const endGameString = `${currentState.players[winner].user.name} wins (${reason})`;
-
-		super.setGameState({
-			status: 'ended',
-			winner,
-			endGameString,
-			ranking: [
-				{ ...currentState.players[winner], rank: 1 },
-				{ ...currentState.players[1 - winner], rank: 2 },
-			],
-		});
-		return {
-			status: 'OK',
-			gameState: this.getGameState(),
-		};
-	}
-
-	addPlayer(user) {
-		const result = super.addPlayer(user);
-
-		if (
-			result.playerAdded &&
-			this.gameState.players.every((p) => {
-				return p.user;
-			})
-		) {
-			return {
-				...result,
-				gameState: this.startGame(),
-			};
-		}
-		return result;
-	}
-
-	playMove(move) {
-		const currentState = super.getGameState();
+	playMove = async (move) => {
+		const currentState = this.getGameState();
 		const player = currentState.players.findIndex((p) => {
 			return p.user.id === move.user.id;
 		});
@@ -107,13 +45,14 @@ class Get10Manager extends GameManager {
 				gameState: currentState,
 				message: 'Game has ended.',
 			};
-		//check if the move was legal - this game has very simple rules, so every move is legal if it's your turn
-		if (player !== currentState.turnsCompleted % 2)
+		//check if the move was legal - this game has very simple rules
+		if (player !== this.getTurn(currentState))
 			return {
 				status: 'fail',
 				gameState: currentState,
 				message: "It's not your turn.",
 			};
+
 		const points = currentState.points + move.value;
 
 		if (points > 10)
@@ -125,39 +64,205 @@ class Get10Manager extends GameManager {
 		else if (points === 10) {
 			//end game state
 			const winner = currentState.turnsCompleted % 2;
-			super.setGameState({
+			this.setGameState({
 				points,
 				status: 'ended',
+				reason: '10 points reached',
 				winner,
-				endGameString: `${currentState.players[winner].user.name} wins!`,
 				ranking: [
 					{ ...currentState.players[winner], rank: 1 },
 					{ ...currentState.players[1 - winner], rank: 2 },
 				],
 			});
+			await this.handleEndGame();
+			this.sendGameUpdate();
 		}
 		//the move was legal but the game did not reach end state
-		else
-			super.setGameState({
+		else {
+			this.setGameState({
 				points: currentState.points + move.value,
 			});
-
-		this.incrementTurn();
+			this.incrementTurn();
+			this.sendGameUpdate();
+		}
 
 		return {
 			status: 'OK',
-			gameState: super.getGameState(),
 		};
+	};
+
+	startGame() {
+		if (this.gameState.status !== 'waiting') return;
+		this.setGameState({
+			active: true,
+			status: 'pregame',
+			message: {
+				status: 'info',
+				message: 'Game starting...',
+				duration: this.pregameLength,
+			},
+		});
+		if (this.settings.go === 'random') {
+			const a = Math.random();
+			if (a < 0.5) {
+				this.gameState.players.unshift(this.gameState.players.pop());
+			}
+		} else if (
+			(this.settings.go === 'first' &&
+				this.gameState.players[0].id !== this.host.id) ||
+			(this.settings.go === 'second' &&
+				this.gameState.players[1].id !== this.host.id)
+		) {
+			this.gameState.players.unshift(this.gameState.players.pop());
+		}
+		this.sendGameUpdate();
+		setTimeout(() => {
+			this.setGameState({
+				status: 'playing',
+				message: null,
+				turnStart: Date.now(),
+			});
+			this.incrementTurn();
+			this.sendGameUpdate();
+		}, this.pregameLength);
 	}
 
-	constructor(settings) {
-		super(settings);
+	async handleEndGame() {
+		if (this.gameState.status !== 'ended') return;
+		if (this.timeout) clearTimeout(this.timeout);
+		const winner = this.getGameState().winner;
+		if (winner !== 0 && winner !== 1) return;
+
+		const ratingChanges = await this.handleRatingChange(
+			this.gameState.players[winner].user,
+			this.gameState.players[1 - winner].user,
+			1
+		);
+
+		const html = [
+			{
+				selector: 'h3',
+				contents: `${this.gameState.players[winner].user.name} wins ${
+					this.gameState.reason ? `(${this.gameState.reason})` : ''
+				}`,
+			},
+			{
+				selector: 'ol',
+				contents: [
+					{
+						selector: 'li.winner',
+						contents: `${this.gameState.players[winner].user.name} (${ratingChanges[0].oldRating} &rarr; ${ratingChanges[0].newRating})`,
+					},
+					{
+						selector: 'li.second',
+						contents: `${this.gameState.players[1 - winner].user.name} (${
+							ratingChanges[1].oldRating
+						} &rarr; ${ratingChanges[1].newRating})`,
+					},
+				],
+			},
+		];
+		this.setGameState({
+			html,
+			ratingChanges,
+		});
+	}
+
+	async removePlayer(id, reason) {
+		console.log(`Removing player ${id} (${reason})`);
+
+		const currentState = this.getGameState();
+		if (!currentState.active && currentState.status !== 'playing')
+			return {
+				status: 'fail',
+				message: 'Game is not active.',
+				gameState: currentState,
+			};
+
+		const ind = this.gameState.players.findIndex((p) => {
+			return p.user.id === id;
+		});
+		if (ind === -1)
+			return {
+				status: 'fail',
+				message: 'Player ID not found.',
+				gameState: currentState,
+			};
+
+		this.setGameState({
+			status: 'ended',
+			reason: 'disconnect',
+			winner: 1 - ind,
+		});
+
+		await this.handleEndGame();
+		this.sendGameUpdate();
+	}
+
+	requestPlayerDrop(id) {
+		return { ...super.requestPlayerDrop(), toDelete: true };
+	}
+
+	startRematch() {
+		this.gameState = {
+			...this.gameState,
+			active: true,
+			status: 'pregame',
+			message: {
+				status: 'info',
+				message: 'Game starting...',
+				duration: this.pregameLength,
+			},
+			turnsCompleted: -1,
+			points: 0,
+		};
+		//switch player order
+		this.gameState.players.unshift(this.gameState.players.pop());
+		//reset player clocks
+		this.gameState.players = this.gameState.players.map((p) => {
+			return {
+				...p,
+				time:
+					this.settings.timer === 'off' ? null : this.settings.time * 60 * 1000,
+				increment:
+					this.settings.timer === 'game' ? this.settings.increment * 1000 : 0,
+				reserve:
+					this.settings.timer === 'move'
+						? this.settings.reserve * 60 * 1000
+						: 0,
+				timer: this.settings.timer,
+				rematch: false,
+			};
+		});
+		this.sendGameUpdate();
+		setTimeout(() => {
+			this.setGameState({
+				status: 'playing',
+				message: null,
+				turnStart: Date.now(),
+			});
+			this.incrementTurn();
+			this.sendGameUpdate();
+		}, this.pregameLength);
+	}
+
+	timeOutFunction() {}
+
+	constructor(settings, io) {
+		super(settings, io);
 		console.log('Initializing game manager for get10');
 		this.verifySettings(settings);
-		this.getTurn = (gameState) => {
-			if (!gameState) return -1;
-			return gameState.turnsCompleted % 2;
+		this.gameName = 'get10';
+
+		this.timeoutFunction = async () => {
+			this.setGameState({
+				status: 'ended',
+				reason: 'timeout',
+				winner: 1 - this.getTurn(),
+			});
+			await this.handleEndGame();
 		};
+
 		const timerState = {
 			time: settings.timer === 'off' ? null : settings.time * 60 * 1000,
 			increment: settings.timer === 'game' ? settings.increment * 1000 : 0,
@@ -171,20 +276,19 @@ class Get10Manager extends GameManager {
 				{
 					...timerState,
 					timer: settings.timer,
+					rematch: false,
 					user: settings.go !== 'second' ? settings.host : null,
 				},
 				{
 					...timerState,
 					timer: settings.timer,
+					rematch: false,
 					user: settings.go === 'second' ? settings.host : null,
 				},
 			],
 			turnsCompleted: -1,
 			points: 0,
 		};
-		// this.timerManager = new TimerManager(this, (gameState) => {
-		// 	return gameState.turnsCompleted % 2;
-		// });
 	}
 }
 

@@ -5,6 +5,7 @@ import { showMessage } from '../utils/messages.js';
 import { createElement } from '../utils/createElementFromSelector.js';
 import { LobbyManager } from '../utils/lobbyManager.js';
 import { TimerManager } from '../utils/timerManager.js';
+import { handleEndGame } from '../utils/handleEndGame.js';
 
 const createGameForm = document.querySelector('#create-game-form');
 const radios = getElementArray(createGameForm, 'input[type="radio"]');
@@ -39,13 +40,15 @@ const endGameModal = new bootstrap.Modal(
 	document.querySelector('#end-game-modal')
 );
 const endGameBody = document.querySelector('#end-game-modal .modal-body');
+const exitGame = document.querySelector('#exit-game');
 const rematch = document.querySelector('#offer-rematch');
+const rematchCount = document.querySelector('#rematch-count');
 
 const newGameState = new StateHandler({
 	game: 'get10',
 	go: 'random',
 	timer: 'game',
-	time: 5,
+	time: 1,
 	increment: 30,
 	reserve: 10,
 });
@@ -161,23 +164,19 @@ document.addEventListener('DOMContentLoaded', () => {
 		const gameInfo = createElement('.game-info');
 
 		gameInfo.innerHTML = `${data.host.name} (${data.host.rating}) ${
-			data.settings.go === 'random' ? '' : `(${data.settings.go})`
+			data.go === 'random' ? '' : `(${data.go})`
 		}<br>`;
-		if (data.settings.timer === 'game') {
+		if (data.timer === 'game') {
 			gameInfo.innerHTML =
 				gameInfo.innerHTML +
-				`Timer: ${data.settings.time}min/game ${
-					data.settings.increment > 0
-						? `+ ${data.settings.increment}s/move`
-						: ''
+				`Timer: ${data.time}min/game ${
+					data.increment > 0 ? `+ ${data.increment}s/move` : ''
 				}`;
-		} else if (data.settings.timer === 'move') {
+		} else if (data.timer === 'move') {
 			gameInfo.innerHTML =
 				gameInfo.innerHTML +
-				`Timer: ${data.settings.time}min/move ${
-					data.settings.reserve > 0
-						? `+ ${data.settings.reserve}min reserve`
-						: ''
+				`Timer: ${data.time}min/move ${
+					data.reserve > 0 ? `+ ${data.reserve}min reserve` : ''
 				}`;
 		} else {
 			gameInfo.innerHTML = gameInfo.innerHTML + `Timer: Off`;
@@ -216,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	socket.on('update-game-state', (data) => {
 		if (!data) return gameState.setState(null);
-
 		if (data.players[0].timer !== 'move') {
 			myReserve.classList.add('d-none');
 			theirReserve.classList.add('d-none');
@@ -225,12 +223,13 @@ document.addEventListener('DOMContentLoaded', () => {
 			theirReserve.classList.remove('d-none');
 		}
 
-		if (data?.message)
+		if (data?.message) {
 			showMessage(
 				data.message.status,
 				data.message.message,
 				data.message.duration || 1000
 			);
+		}
 		//cancel button exists when game is not yet active
 		if (!data.active) {
 			gameState.setState(data);
@@ -242,21 +241,12 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 
 		if (data.status === 'ended') {
-			const header = createElement('h3');
-			header.innerHTML = data.endGameString;
-			const list = createElement('ol');
-			data.ranking.forEach((p) => {
-				const item = createElement('li');
-				item.innerHTML = `${p.user.name} (${p.oldRating} &rarr; ${p.newRating})`;
-				if (p.rank === 1) item.classList.add('winner');
-				else if (p.rank === 2) item.classList.add('second');
-				else if (p.rank === 3) item.classList.add('third');
-				list.appendChild(item);
-			});
-			endGameBody.innerHTML = '';
-			endGameBody.appendChild(header);
-			endGameBody.appendChild(list);
+			rematch.disabled = false;
+			handleEndGame(endGameBody, data.html);
 			endGameModal.show();
+		} else {
+			endGameModal.hide();
+			rematch.disabled = true;
 		}
 	});
 
@@ -333,7 +323,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		else e.target.classList.remove('d-none');
 		const content = e.target.querySelector('#status-content');
 		if (!content) return;
-		if (e.detail.status === 'ended') content.innerHTML = 'Game over';
+
+		if (e.detail.status === 'ended') {
+			content.innerHTML = 'Game over';
+		} else if (e.detail.status === 'pregame')
+			content.innerHTML = 'Game starting...';
 		else if (e.detail.myIndex === e.detail.turnsCompleted % 2)
 			content.innerHTML = 'Your turn';
 		else
@@ -350,13 +344,65 @@ document.addEventListener('DOMContentLoaded', () => {
 			{ value },
 			withTimeout((data) => {
 				if (data.status !== 'OK') showMessage('error', data.message);
-				console.log(data);
-			}, timeoutMessage)
+			}, timeoutMessage('Move timed out'))
 		);
 	};
 
 	[button1, button2].forEach((b) => {
 		b.addEventListener('click', handleButtonClick);
 		gameState.addWatcher(b, (e) => {});
+	});
+
+	exitGame.addEventListener('click', () => {
+		const state = gameState.getState();
+		if (state.status !== 'ended')
+			return showMessage('error', 'You may not exit the game this way.');
+		socket.emit(
+			'request-exit',
+			null,
+			withTimeout((data) => {
+				if (data.status !== 'OK') return showMessage('error', data.message);
+				gameState.setState(null);
+			}, timeoutMessage('Request timed out.'))
+		);
+	});
+
+	socket.on('user-exit', (data) => {
+		showMessage('info', `${data.name} has left.`);
+		rematch.disabled = true;
+	});
+
+	const getRematchCount = (players) => {
+		return players.reduce((p, c) => {
+			if (c.rematch) return p + 1;
+			return p;
+		}, 0);
+	};
+	rematch.addEventListener('click', () => {
+		const state = gameState.getState();
+		if (state.status !== 'ended')
+			return showMessage('error', 'This game is still active.');
+
+		socket.emit(
+			'request-rematch',
+			null,
+			withTimeout((data) => {
+				if (data.status !== 'OK') return showMessage('error', data.message);
+				const rc = getRematchCount(data.players);
+				rematchCount.innerHTML = `${rc}/${data.players.length}`;
+				if (rc === data.players.length) {
+					endGameModal.hide();
+					rematchCount.innerHTML = '';
+				}
+			}, timeoutMessage('Request timed out.'))
+		);
+	});
+	socket.on('rematch-request', (data) => {
+		const rc = getRematchCount(data.players);
+		rematchCount.innerHTML = `${rc}/${data.players.length}`;
+		if (rc === data.players.length) {
+			endGameModal.hide();
+			rematchCount.innerHTML = '';
+		}
 	});
 });

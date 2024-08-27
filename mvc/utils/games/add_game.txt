@@ -1,0 +1,7 @@
+Things to do when adding new game:
+
+1. create and include its gameboard in game_div.pug
+2. create and include its create new game modal in createGameModal.pug
+3. create its gameManager subclass, include it in socketManager.js
+4. create its js for the front end
+5. add it to gameList.js

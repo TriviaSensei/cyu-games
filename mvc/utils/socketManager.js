@@ -10,7 +10,8 @@ const filter = new Filter();
 
 const pingInterval = 1000;
 const pingTimeout = 500;
-const userTimeout = 5 * 60 * 1000;
+// const userTimeout = 5 * 60 * 1000;
+const userTimeout = 2000;
 const pregameLength = 3000;
 
 const { gameList, getGame } = require('../utils/gameList');
@@ -18,7 +19,10 @@ const { gameList, getGame } = require('../utils/gameList');
 const gameManager = {
 	pushfight: require('./games/pushfightSocket'),
 	get10: require('./games/get10Manager'),
+	cribbage: require('./games/cribbageManager'),
 };
+
+let io;
 
 /**
  * {
@@ -30,59 +34,30 @@ const gameManager = {
  * }
  */
 let connectedUsers = [];
-const mgr = new gameManager['get10']({
-	go: 'random',
-	timer: 'move',
-	time: 0.1,
-	increment: 30,
-	reserve: 0,
-	host: {
-		id: '667cb17b0a7be772a5b2220e',
-		name: 'Chuck',
-		rating: 'Unr',
-	},
-});
-
-/**
- * game: 'pushfight', 'cribabge', etc.
- * gameManager: [GAMENAME]Rules {
- * 		gameState: {
- * 			active: bool,
- * 			...settings,
- *
- * 			players: [...],
- * 			...other info, game state, etc.
- * 		},
- * 		matchId: alkjsdlfjk=-187ghkjh34-gjh23kjhr
- *  	host: {
- *	 			id: alksdjjg34gj,
- * 				user: Chuck,
- * 				rating: 1200 (all from DB)
- * 		},
- * }
- *
- *
- *
- */
-let availableGames = [
-	{
-		game: 'get10',
-		gameManager: mgr,
-	},
-];
-
-// availableGames = [];
-
-// availableGames = [];
+let availableGames = [];
 let activeGames = [];
 
-const disconnectUser = (id) => {
+const disconnectUser = async (id) => {
+	let game;
 	connectedUsers = connectedUsers.filter((u) => {
-		return (
+		if (
 			u.socketId !== id ||
 			!u.lastDisconnect ||
 			new Date() - Date.parse(u.lastDisconnect) < userTimeout
-		);
+		)
+			return true;
+
+		console.log(`Disconnecting user with socket ID ${id}`);
+
+		if (!u.matchId) return false;
+
+		game = activeGames.find((g) => {
+			return g.gameManager?.getMatchId() === u.matchId;
+		});
+		if (!game) return false;
+
+		game.gameManager.removePlayer(id, 'disconnect');
+		return false;
 	});
 };
 
@@ -91,7 +66,7 @@ const getUser = async (cookie) => {
 	const token = arr.find((c) => {
 		const t = c.split('=');
 		if (t.length !== 2) return false;
-		return t[0] === 'jwt';
+		return t[0].trim() === 'jwt';
 	});
 	if (!token) return null;
 	const decoded = await promisify(jwt.verify)(
@@ -110,8 +85,31 @@ const getConnectedUser = (id) => {
 	});
 };
 
+const getGameForUser = (id) => {
+	let user = getConnectedUser(id);
+	if (!user || !user.matchId) return null;
+	let toReturn = activeGames.find((g) => {
+		return g.gameManager.getMatchId() === user.matchId;
+	});
+	if (!toReturn)
+		toReturn = availableGames.find((g) => {
+			return g.gameManager.getMatchId() === user.matchId;
+		});
+	return toReturn;
+};
+
+const removeGame = (id) => {
+	connectedUsers.forEach((u) => {
+		if (u.matchId === id) u.matchId = null;
+	});
+
+	activeGames = activeGames.filter((g) => {
+		return g.gameManager.getMatchId() !== id;
+	});
+};
+
 const socket = async (http, server) => {
-	const io = require('socket.io')(http, {
+	io = require('socket.io')(http, {
 		pingInterval,
 		pingTimeout,
 	});
@@ -131,6 +129,14 @@ const socket = async (http, server) => {
 			last = arr.pop().toLowerCase();
 		}
 
+		const forceDisconnect = (user) => {
+			const socketToDisconnect = io.sockets.sockets.get(user.socketId);
+			if (!socketToDisconnect) return;
+			if (user.gameId) socketToDisconnect.leave(user.gameId);
+			if (user.matchId) socketToDisconnect.leave(user.matchId);
+			io.to(user.socketId).emit('force-disconnect', null);
+		};
+
 		const setUserData = (data) => {
 			if ((typeof data).toLowerCase() !== 'object') return;
 			const items = Object.getOwnPropertyNames(data);
@@ -138,6 +144,7 @@ const socket = async (http, server) => {
 				!connectedUsers.some((u) => {
 					if (u.id === loggedInUser.id) {
 						items.forEach((i) => {
+							if (i === 'socketId') forceDisconnect(u);
 							u[i] = data[i];
 						});
 						return true;
@@ -189,24 +196,25 @@ const socket = async (http, server) => {
 				});
 
 				//send the list of available games in the lobby to the newly connected user
+				console.log(availableGames);
 				io.to(socket.id).emit(
 					'available-games-list',
-					availableGames.filter((g) => {
-						return g.game === last && g.gameManager.host.id !== loggedInUser.id;
-					})
+					availableGames
+						.filter((g) => {
+							return (
+								g.game === last && g.gameManager.host.id !== loggedInUser.id
+							);
+						})
+						.map((g) => {
+							return {
+								...g,
+								matchId: g.gameManager.getMatchId(),
+								gameManager: null,
+							};
+						})
 				);
 			}
 		}
-
-		const sendGameUpdate = (gameState) => {
-			gameState.players.forEach((p, i) => {
-				if (!p.user) return;
-				io.to(p.user.socketId).emit('update-game-state', {
-					...gameState,
-					myIndex: i,
-				});
-			});
-		};
 
 		const joinGame = (game) => {
 			const matchId = game.gameManager.getMatchId();
@@ -219,28 +227,10 @@ const socket = async (http, server) => {
 				});
 			setUserData({ matchId });
 			socket.join(matchId);
+			console.log(user);
 			//when a player is actually added (instead of rejoining), send the update to the whole game
-			const gameState = game.gameManager.getGameState();
 			if (result.playerAdded) {
 				console.log(`${user.name} is joining game ${matchId}`);
-				sendGameUpdate(gameState);
-				//game automatically starts when enough players join
-				if (gameState.status === 'pregame') {
-					io.to(user.gameId).emit('cancel-game', { id: matchId });
-					activeGames.push(game);
-					availableGames = availableGames.filter((g) => {
-						return g.gameManager.getMatchId() !== matchId;
-					});
-					setTimeout(() => {
-						game.gameManager.setGameState({
-							status: 'playing',
-							message: null,
-							turnStart: Date.now(),
-						});
-						const gs = game.gameManager.getGameState();
-						sendGameUpdate(gs);
-					}, pregameLength);
-				}
 			}
 			//otherwise, send it to just the player who rejoined
 			else {
@@ -253,9 +243,30 @@ const socket = async (http, server) => {
 					}),
 				});
 			}
+			//if the game started, put it in the active games list, and remove it from the availableGames list.
+			if (result.gameStarted) {
+				//move the game to activeGames
+				const game = availableGames.find((g) => {
+					return g.gameManager.getMatchId() === matchId;
+				});
+				if (!game)
+					return io.to(matchId).emit('server-message', {
+						status: 'error',
+						message: 'Something went wrong.',
+					});
+				activeGames.push(game);
+
+				//remove the game from availableGames, tell the lobby that the game is no longer available
+				availableGames = availableGames.filter((g) => {
+					return g.gameManager.getMatchId() !== matchId;
+				});
+				io.to(user.gameId).emit('cancel-game', { id: matchId });
+			}
 		};
 		//see if the user is part of an active game
 		const isInGame = (g) => {
+			const user = getConnectedUser(socket.id);
+			if (g.gameManager.gameName !== user.gameId) return false;
 			return (
 				g.gameManager.host.id === loggedInUser.id ||
 				g.gameManager.getGameState().players.some((p) => {
@@ -275,11 +286,17 @@ const socket = async (http, server) => {
 					status: 'fail',
 					message: 'Please watch your language.',
 				});
+
+			const user = getConnectedUser(socket.id);
+			if (!user)
+				return cb({
+					status: 'fail',
+					message: 'You are not connected',
+				});
+
 			cb({
 				status: 'OK',
 			});
-			const user = getConnectedUser(socket.id);
-
 			if (user.matchId)
 				socket.to(user.matchId).emit('chat-message-match', {
 					user: user.name,
@@ -293,7 +310,6 @@ const socket = async (http, server) => {
 		});
 
 		socket.on('create-game', (data, cb) => {
-			console.log('creating game');
 			//is this person playing a game or already waiting for one?
 			const user = getConnectedUser(socket.id);
 			if (!user)
@@ -305,39 +321,33 @@ const socket = async (http, server) => {
 				return cb({ status: 'fail', message: 'You are already in a game.' });
 			}
 
-			myRating = loggedInUser.ratings.find((r) => {
-				return r.game === data.game;
-			});
+			myRating = user.rating;
 
 			const newGame = {
 				...data,
 				host: {
 					name: user.name,
 					id: user.id,
-					rating: myRating
-						? myRating.games > 20
-							? myRating.rating
-							: `${myRating.rating}P${myRating.games}`
-						: 'Unr',
+					socketId: user.socketId,
+					rating: myRating ? myRating.rating : 1200,
 				},
 			};
 			try {
-				const gm = new gameManager[user.gameId](newGame);
+				const gm = new gameManager[user.gameId](newGame, io);
 				availableGames.push({
 					...newGame,
 					gameManager: gm,
 				});
-				socket.to(user.gameId).emit('available-new-game', gm);
+				socket.to(user.gameId).emit('available-new-game', {
+					...newGame,
+					matchId: gm.getMatchId(),
+				});
+
 				socket.join(gm.getMatchId());
+
 				cb({ status: 'OK' });
 				setUserData({ matchId: gm.getMatchId() });
-				const gs = gm.getGameState();
-				return io.to(socket.id).emit('update-game-state', {
-					...gs,
-					myIndex: gs.players.findIndex((p) => {
-						return p.id === user.id;
-					}),
-				});
+				gm.sendGameUpdate();
 			} catch (err) {
 				console.log(err);
 				cb({
@@ -390,103 +400,6 @@ const socket = async (http, server) => {
 			joinGame(gameToJoin);
 		});
 
-		const updateRatings = async (game, result) => {
-			const players = await Promise.all(
-				result.gameState.ranking.map((p) => {
-					return User.findById(p.user.id);
-				})
-			);
-
-			await Promise.all(
-				players.map((p) => {
-					const rating = p.ratings.find((r) => {
-						return r.game === game.game;
-					});
-					if (!rating) {
-						p.ratings.push({
-							game: game.game,
-							rating: 1200,
-							games: 0,
-						});
-						return p.save({
-							validateBeforeSave: false,
-						});
-					} else {
-						return p;
-					}
-				})
-			);
-
-			const ratingChanges = players.map((p, i) => {
-				const r = p.ratings.find((g) => {
-					return g.game === game.game;
-				});
-
-				return {
-					rank: result.gameState.ranking[i].rank,
-					oldRating: r.rating || 1200,
-					newRating: r.rating || 1200,
-					games: r.games,
-				};
-			});
-
-			ratingChanges.forEach((p1, i) => {
-				let ratingChange = 0;
-				const K = p1.games < 20 ? 32 : p1.games < 100 ? 16 : 8;
-				ratingChanges.forEach((p2, j) => {
-					if (i === j) return;
-					//result: 1 for win, 0 for loss, 0.5 for draw
-					const result = p1.rank < p2.rank ? 1 : p1.rank === p2.rank ? 0.5 : 0;
-					const pWin =
-						1 / (1 + Math.pow(10, (p1.oldRating - p2.oldRating) / 400));
-					ratingChange = ratingChange + K * (result - pWin);
-				});
-				p1.newRating = Math.max(100, p1.oldRating + Math.round(ratingChange));
-			});
-			result.gameState.ranking.forEach((r, i) => {
-				r.oldRating = ratingChanges[i].oldRating;
-				r.newRating = ratingChanges[i].newRating;
-			});
-			await Promise.all(
-				result.gameState.ranking.map(async (r) => {
-					const user = await User.findById(r.user.id);
-					if (!user) return;
-					user.ratings.some((g) => {
-						if (g.game === game.game) {
-							g.rating = r.newRating;
-							g.games = g.games + 1;
-							return true;
-						}
-					});
-					//update their rating in the array as well
-					connectedUsers.some((u) => {
-						if (u.id === user._id.toString()) {
-							u.rating.rating = r.newRating;
-							u.rating.games++;
-							return true;
-						}
-					});
-					user.markModified('ratings');
-					return user.save({ validateBeforeSave: false });
-				})
-			);
-		};
-
-		const handleEndGame = async (game, result) => {
-			console.log(result);
-
-			await updateRatings(game, result);
-
-			result.gameState.players.forEach((p) => {
-				const user = getConnectedUser(p.user.socketId);
-				user.matchId = null;
-			});
-
-			activeGames = activeGames.filter((g) => {
-				return g.gameManager.getMatchId() !== game.gameManager.getMatchId();
-			});
-		};
-
 		socket.on('play-move', async (data, cb) => {
 			const user = getConnectedUser(socket.id);
 			if (!user) return cb({ status: 'fail', message: 'User not found.' });
@@ -502,44 +415,88 @@ const socket = async (http, server) => {
 				if (state.status === 'ended')
 					return cb({ status: 'fail', message: 'This game has ended' });
 			}
-			const result = game.gameManager.playMove({
+			const result = await game.gameManager.playMove({
 				user,
 				...data,
 			});
-
 			cb(result);
 
-			if (result.status === 'OK') {
-				if (game.timeout) {
-					clearTimeout(game.timeout);
-				}
-				if (result.gameState.status === 'ended') {
-					await handleEndGame(game, result);
-				} else {
-					const turn = game.gameManager.getTurn(result.gameState);
-					if (result.gameState.timeout >= 0) {
-						game.timeout = setTimeout(async () => {
-							const timeoutResult = game.gameManager.removePlayer(
-								turn,
-								'timeout'
-							);
-							if (timeoutResult.gameState.status === 'ended')
-								await handleEndGame(game, timeoutResult);
-							sendGameUpdate(timeoutResult.gameState);
-						}, result.gameState.timeout);
-					}
-				}
-				sendGameUpdate(result.gameState);
+			const gameState = game.gameManager.getGameState();
+			if (!gameState) return;
+			if (gameState.status === 'ended') {
+				if (gameState.ratingChanges)
+					gameState.ratingChanges.forEach((rc) => {
+						connectedUsers.some((u) => {
+							if (u.id === rc.id) {
+								u.rating.rating = rc.newRating;
+								u.rating.games = u.rating.games + 1;
+								return true;
+							}
+						});
+					});
 			}
+		});
+
+		socket.on('request-exit', (data, cb) => {
+			const user = getConnectedUser(socket.id);
+			if (!user) return cb({ status: 'fail', message: 'User not found' });
+
+			const game = activeGames.find((g) => {
+				return g.gameManager.getMatchId() === user.matchId;
+			});
+
+			if (!game) return cb({ status: 'OK' });
+
+			const gameState = game.gameManager.getGameState();
+			if (gameState.status !== 'ended')
+				return cb({ status: 'fail', message: 'This game is still active.' });
+
+			const result = game.gameManager.requestPlayerDrop(user.id);
+
+			if (result.status !== 'OK') return cb(result);
+
+			socket.leave(user.matchId);
+			socket.to(user.matchId).emit('user-exit', {
+				name: user.name,
+			});
+			setUserData({ matchId: null });
+
+			if (result.toDelete) removeGame(user.matchId);
+
+			return cb({ status: 'OK' });
+		});
+
+		socket.on('request-rematch', (data, cb) => {
+			const user = getConnectedUser(socket.id);
+			if (!user) return cb({ status: 'fail', message: 'User not found' });
+
+			const game = activeGames.find((g) => {
+				return g.gameManager.getMatchId() === user.matchId;
+			});
+			if (!game)
+				return cb({ status: 'fail', message: 'Rematch request failed' });
+
+			const result = game.gameManager.requestRematch(user.id);
+			cb(result);
+			if (result.status === 'OK')
+				socket
+					.to(user.matchId)
+					.emit('rematch-request', { players: result.players });
 		});
 
 		socket.on('disconnect', (reason) => {
 			console.log(`${loggedInUser.displayName} has disconnected (${reason})`);
 			setUserData({ lastDisconnect: new Date() });
+			const user = getUser(socket.id);
+			const game = getGameForUser(socket.id);
+			if (game) {
+				game.gameManager.setPlayerData(user.id, { connected: false });
+			}
 			setTimeout(() => {
 				disconnectUser(socket.id);
 			}, userTimeout);
 		});
 	});
 };
+
 module.exports = socket;

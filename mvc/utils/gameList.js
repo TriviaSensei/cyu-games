@@ -8,19 +8,19 @@ exports.gameList = [
 			},
 		],
 	},
-	// {
-	// 	category: 'Card',
-	// 	games: [
-	// 		{
-	// 			displayName: 'Cribbage',
-	// 			name: 'cribbage',
-	// 		},
-	// 		{
-	// 			displayName: 'Oh Hell',
-	// 			name: 'ohhell',
-	// 		},
-	// 	],
-	// },
+	{
+		category: 'Card',
+		games: [
+			{
+				displayName: 'Cribbage',
+				name: 'cribbage',
+			},
+			// {
+			// 	displayName: 'Oh Hell',
+			// 	name: 'ohhell',
+			// },
+		],
+	},
 	{
 		category: 'Other',
 		games: [

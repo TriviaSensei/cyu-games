@@ -1,0 +1,35 @@
+.w-100.h-100.mw-100.mh-100.d-flex.flex-column
+    #opponent-area.player-area
+        #opponent-message.message.d-none
+        #opponent-tag.player-tag
+            .player-info.d-flex.flex-column
+                .player-name ???
+                .player-timer-container.d-flex.flex-row.align-items-end
+                    .player-timer.me-2.active-timer 0:00
+                    .player-reserve 0:00            
+            #opponent-score.score-tag 
+                .score-container.m-auto 0
+    #play-area.middle-area
+        .d-flex.w-100
+            .deck-container.card-container.ratio(style="--bs-aspect-ratio:155%;")
+                #draw-deck.playing-card.flip-card
+                    .peg-count.d-none
+                        .fs-6.text-center Count: 
+                        .fs-5.text-center 0        
+            .ms-3.f-1.play-container.position-relative
+                //- - let i = 0;
+                //- - while (i < 13)
+                //-     - i++
+                //-     .card-container.ratio(class=`${i%2===0? 'my-card' : 'their-card'}` style="--bs-aspect-ratio:155%;")
+                //-         .playing-card(class=`r-${i} s-${['s','h','d','c'][i%4]}`)
+    #my-area.player-area
+        #my-message.message.d-none
+        #my-tag.player-tag
+            .player-info.d-flex.flex-column
+                .player-name ???
+                .player-timer-container.d-flex.flex-row.align-items-end
+                    .player-timer.me-2.active-timer 0:00
+                    .player-reserve 0:00
+            #my-score.score-tag 
+                .score-container.m-auto 0
+

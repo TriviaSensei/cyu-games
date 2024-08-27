@@ -1,4 +1,4 @@
-import { withTimeout } from './socketTimeout.js';
+import { timeoutMessage, withTimeout } from './socketTimeout.js';
 import { createChatMessage } from './chatMessage.js';
 import { showMessage } from './messages.js';
 
@@ -97,6 +97,7 @@ export class LobbyManager {
 
 		lobbyChatForm.addEventListener('submit', (e) => {
 			e.preventDefault();
+			if (lobbyChatMsg.value === '') return;
 			const newMessage = newChatMessage(lobbyChatBox, {
 				user: 'me',
 				message: lobbyChatMsg.value,
@@ -106,19 +107,14 @@ export class LobbyManager {
 				{
 					message: lobbyChatMsg.value,
 				},
-				withTimeout(
-					(data) => {
-						if (data.status === 'OK') {
-							lobbyChatMsg.value = '';
-						} else {
-							showMessage('error', data.message);
-							newMessage.remove();
-						}
-					},
-					() => {
-						showMessage('error', 'Message timed out - try again');
+				withTimeout((data) => {
+					if (data.status === 'OK') {
+						lobbyChatMsg.value = '';
+					} else {
+						showMessage('error', data.message);
+						newMessage.remove();
 					}
-				)
+				}, timeoutMessage('Message timed out. Try again.'))
 			);
 		});
 
@@ -133,19 +129,14 @@ export class LobbyManager {
 				{
 					message: gameChatMsg.value,
 				},
-				withTimeout(
-					(data) => {
-						if (data.status === 'OK') {
-							gameChatMsg.value = '';
-						} else {
-							showMessage('error', data.message);
-							newMessage.remove();
-						}
-					},
-					() => {
-						showMessage('error', 'Message timed out - try again');
+				withTimeout((data) => {
+					if (data.status === 'OK') {
+						gameChatMsg.value = '';
+					} else {
+						showMessage('error', data.message);
+						newMessage.remove();
 					}
-				)
+				}, timeoutMessage)
 			);
 		});
 
@@ -173,7 +164,7 @@ export class LobbyManager {
 		socket.on('available-games-list', (data) => {
 			availableGameArea.innerHTML = '';
 			data.forEach((g) => {
-				addGameTile(g.gameManager);
+				addGameTile(g);
 			});
 		});
 
@@ -195,6 +186,10 @@ export class LobbyManager {
 					}
 				)
 			);
+		});
+
+		socket.on('force-disconnect', () => {
+			showMessage('error', 'Disconnected from server', 5000);
 		});
 	}
 }
