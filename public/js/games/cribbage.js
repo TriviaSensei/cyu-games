@@ -7,10 +7,21 @@ import { LobbyManager } from '../utils/lobbyManager.js';
 import { TimerManager } from '../utils/timerManager.js';
 import { handleEndGame } from '../utils/handleEndGame.js';
 
+const ratio = 1.55;
+const cardDims = {
+	width: 0,
+	height: 0,
+};
+const cardDelay = 400;
+const cardOffset = 0.4;
+
 const containerAll = document.querySelector('.container-all');
 const playArea = document.querySelector('#play-area');
 const myArea = document.querySelector('#my-area');
+const myHand = myArea.querySelector('.hand-container');
 const theirArea = document.querySelector('#opponent-area');
+const theirHand = theirArea.querySelector('.hand-container');
+const deckContainer = document.querySelector('.deck-container');
 
 const createGameForm = document.querySelector('#create-game-form');
 const radios = getElementArray(createGameForm, 'input[type="radio"]');
@@ -59,6 +70,23 @@ const gameState = new StateHandler(null);
 
 document.addEventListener('DOMContentLoaded', () => {
 	const socket = io();
+
+	const handleResizeCards = () => {
+		const rect = deckContainer.getBoundingClientRect();
+		if (
+			cardDims.height === rect.height &&
+			cardDims.width === rect.height / ratio
+		)
+			return;
+		cardDims.height = rect.height;
+		cardDims.width = rect.height / ratio;
+		const cards = getElementArray(document, '.card-container');
+		cards.forEach((c) => {
+			c.style.width = `${cardDims.width}px`;
+			c.style.height = `${cardDims.height}px`;
+		});
+	};
+	window.addEventListener('resize', handleResizeCards);
 
 	const getTimeString = (time) => {
 		const sec = Math.floor((time % 60000) / 1000);
@@ -196,6 +224,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (e.detail.stage === 'draw-for-crib')
 			content.innerHTML = 'Drawing for first deal...';
 		else if (e.detail.status === 'playing') {
+			if (e.detail.stage === 'crib') {
+				if (e.detail.crib === e.detail.myIndex)
+					content.innerHTML = 'Select two cards for your crib.';
+				else
+					content.innerHTML = `Select two cards for ${
+						e.detail.players[1 - e.detail.myIndex].user.name
+					}'s crib.`;
+			}
 		} else if (e.detail.status === 'ended') {
 			content.innerHTML = 'Game over';
 		}
@@ -215,15 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		else e.target.innerHTML = p.user.name;
 	});
 
-	const createCard = (card, flip, showing) => {
+	const createCard = (card, flip, shown) => {
 		const deck = document.querySelector('.deck-container');
 		if (!deck) return null;
-		const rect = deck.getBoundingClientRect();
-		const cont = createElement('.card-container.ratio');
-		cont.setAttribute('style', '--bs-aspect-ratio:155%;');
-		cont.style.height = `${rect.height}px`;
-		cont.style.width = `${rect.width}px`;
+		const cont = createElement('.card-container');
+		cont.style.height = `${cardDims.height}px`;
+		cont.style.width = `${cardDims.width}px`;
 		const pc = createElement('.playing-card');
+		if (shown) pc.classList.add('shown');
 		cont.appendChild(pc);
 		let inner, front, back;
 		//flippable - create the front and the back
@@ -231,7 +266,11 @@ document.addEventListener('DOMContentLoaded', () => {
 			pc.classList.add('flip-card');
 			inner = createElement('.flip-card-inner');
 			front = createElement(`.flip-card-front`);
-			if (card) front.classList.add(`r-${card.rank}.s-${card.suit}`);
+			if (card) {
+				front.classList.add(`r-${card.rank}`, `s-${card.suit}`);
+				cont.setAttribute('data-rank', card.rank);
+				cont.setAttribute('data-suit', card.suit);
+			}
 			back = createElement('.flip-card-back');
 			pc.appendChild(inner);
 			inner.appendChild(front);
@@ -246,47 +285,62 @@ document.addEventListener('DOMContentLoaded', () => {
 		return cont;
 	};
 
+	const removeAllCards = () => {
+		[myHand, theirHand].forEach((h) => {
+			h.innerHTML = '';
+		});
+	};
+
+	const dealCards = (cards, flip, shown, hand) => {
+		removeAllCards();
+		const newCards = cards.map((c) => {
+			const toReturn = createCard(c, flip, false);
+			toReturn.classList.add('moving');
+			playArea.appendChild(toReturn);
+			return toReturn;
+		});
+		hand.style.width = `${
+			cardDims.width + (cards.length - 1) * cardDims.width * cardOffset
+		}px`;
+		hand.style.height = `${cardDims.height}px`;
+
+		const deckRect = deckContainer.getBoundingClientRect();
+		const handRect = hand.getBoundingClientRect();
+
+		newCards.forEach((c, i) => {
+			setTimeout(() => {
+				const dy = handRect.top - deckRect.top;
+				const dx =
+					handRect.left + i * cardOffset * cardDims.width - deckRect.left;
+				c.style.transform = `translateX(${dx}px)`;
+				c.style.transform += `translateY(${dy}px)`;
+				if (shown) c.querySelector('.playing-card').classList.add('shown');
+				setTimeout(() => {
+					c.classList.remove('moving');
+					hand.appendChild(c);
+					c.style.transform = '';
+				}, cardDelay);
+			}, cardDelay * i);
+		});
+
+		return newCards;
+	};
+
+	const byRank = (a, b) => {
+		return a.value - b.value;
+	};
 	//handler for rendering game state, etc.
 	gameState.addWatcher(null, (state) => {
 		if (!state?.status) return;
+		handleResizeCards();
 		if (state.status === 'pregame') {
-			let c1 = document.querySelector('#my-card');
-			if (!c1) {
-				c1 = createCard(null, true, false);
-				c1.setAttribute('id', 'my-card');
-				c1.classList.add('moving');
-				playArea.appendChild(c1);
-			}
-			let c2 = document.querySelector('#their-card');
-			if (!c2) {
-				c2 = createCard(null, true, false);
-				c2.setAttribute('id', 'their-card');
-				c2.classList.add('moving');
-				playArea.appendChild(c2);
-			}
-
 			if (state.stage === 'draw-for-crib') {
 				const hands = [
 					state.players[state.myIndex].hand[0],
 					state.players[1 - state.myIndex].hand[0],
 				];
-
-				const myRect = myArea.getBoundingClientRect();
-				const playRect = playArea.getBoundingClientRect();
-				const cr = c1.getBoundingClientRect();
-				[c1, c2].forEach((c, i) => {
-					const cd = c.querySelector('.playing-card');
-					cd.classList.add('shown');
-					const ci = c.querySelector('.flip-card-front');
-					ci.classList.add(`r-${hands[i].rank}`, `s-${hands[i].suit}`);
-					const dx = myRect.width / 2 - cr.width / 2;
-					const r = i === 0 ? myArea : theirArea;
-					const rect = r.getBoundingClientRect();
-					const dy =
-						(rect.bottom + rect.top) / 2 - (playRect.bottom + playRect.top) / 2;
-					c.style.transform = `translateX(${dx}px)`;
-					c.style.transform += `translateY(${dy}px)`;
-				});
+				dealCards(state.players[state.myIndex].hand, true, true, myHand);
+				dealCards(state.players[1 - state.myIndex].hand, true, true, theirHand);
 
 				setTimeout(() => {
 					showMessage(
@@ -298,7 +352,51 @@ document.addEventListener('DOMContentLoaded', () => {
 						} the first deal.`,
 						2000
 					);
-				}, 400);
+				}, cardDelay);
+			}
+		} else if (state.status === 'playing') {
+			/**
+			 * Playing stages:
+			 * - crib
+			 * - play
+			 * - count-hand
+			 * - count-crib
+			 */
+			if (state.stage === 'crib') {
+				setTimeout(
+					() => {
+						const myCards = dealCards(
+							state.players[state.myIndex].hand.sort(byRank),
+							true,
+							true,
+							myHand,
+							cardDelay
+						);
+						myCards.forEach((c) => {
+							c.addEventListener('click', (e) => {
+								const sc = getElementArray(myHand, '.selected-card');
+								const cc = e.target.closest('.card-container');
+								if (sc.length >= 2 && !cc.classList.contains('selected-card'))
+									return;
+								cc.classList.toggle('selected-card');
+							});
+						});
+					},
+					state.crib === state.myIndex ? cardDelay / 2 : 0
+				);
+
+				setTimeout(
+					() => {
+						dealCards(
+							state.players[1 - state.myIndex].hand,
+							true,
+							false,
+							theirHand,
+							cardDelay
+						);
+					},
+					state.crib === state.myIndex ? 0 : cardDelay / 2
+				);
 			}
 		}
 	});

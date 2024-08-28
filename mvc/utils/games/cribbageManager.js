@@ -17,6 +17,45 @@ class CribbageManager extends GameManager {
 		if (message) throw new Error(message);
 	}
 
+	/**
+	 * Game stages:
+	 * Show opponent hand:
+	 * - draw-for-crib
+	 * - count-hand
+	 * - count-crib
+	 *
+	 * Hide opponent hand:
+	 * crib
+	 * play
+	 */
+
+	sendGameUpdate() {
+		const gameState = this.getGameState();
+		this.gameState.players.forEach((p, i) => {
+			if (!p.user) return;
+			if (this.io)
+				this.io.to(p.user.socketId).emit('update-game-state', {
+					...gameState,
+					myIndex: i,
+					players: this.gameState.players.map((pl, j) => {
+						if (
+							i === j ||
+							['draw-for-crib', 'count-hand', 'count-crib'].includes(
+								this.gameState.stage
+							)
+						)
+							return pl;
+						return {
+							...pl,
+							hand: pl.hand.map((c) => {
+								return null;
+							}),
+						};
+					}),
+				});
+		});
+	}
+
 	startGame() {
 		if (this.gameState.status !== 'waiting') return null;
 		this.setGameState({
@@ -63,8 +102,11 @@ class CribbageManager extends GameManager {
 					return p.hand[0];
 				})
 			);
-			this.dealNewHand();
-			this.setGameState({ status: 'playing', stage: 'crib' });
+			setTimeout(() => {
+				this.dealNewHand();
+				this.setGameState({ status: 'playing', stage: 'crib' });
+				this.sendGameUpdate();
+			}, this.pregameLength);
 		}, this.pregameLength);
 		return this.gameState;
 	}

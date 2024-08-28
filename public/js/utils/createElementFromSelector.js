@@ -26,9 +26,16 @@ export const createElement = (selector) => {
 		tokens = idFinder[1].split('.').splice(0, 1);
 	}
 	tokens = idFinder[0].split('.').concat(tokens);
-	tokens.forEach((t, i) => {
+	let id = element.getAttribute('id');
+	let idFound = false;
+	names.forEach((t, i) => {
 		if (i === 0 && tagFound) return;
-		if (t !== '') element.classList.add(t);
+		if (!t) return;
+		if (id && !idFound && t === id) {
+			idFound = true;
+			return;
+		}
+		if (!id || t !== id || idFound) element.classList.add(t);
 	});
 
 	return element;

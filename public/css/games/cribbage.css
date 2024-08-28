@@ -4,6 +4,10 @@ body {
 	position: relative;
 }
 
+.card-container {
+	height: 100%;
+}
+
 .message {
 	position: absolute;
 	z-index: 2000;
@@ -58,8 +62,8 @@ body {
 	flex-direction: row;
 	justify-content: flex-start;
 	align-items: center;
-	margin-top: 1rem;
-	margin-bottom: 1rem;
+	/* margin-top: 1rem;
+	margin-bottom: 1rem; */
 	position: relative;
 }
 
@@ -72,11 +76,11 @@ body {
 }
 
 .active-timer {
-	font-size: 1.5rem;
+	font-size: 1.2rem;
 }
 
 .score-display {
-	font-size: 1.5rem;
+	font-size: 1.3rem;
 	font-weight: bold;
 }
 
@@ -192,5 +196,44 @@ body {
 	.card-container:nth-child(13) {
 		transform: translate(240%);
 		z-index: 11;
+	}
+}
+
+.hand-container {
+	margin: auto;
+	position: relative;
+	display: flex;
+	flex-direction: row;
+	.card-container {
+		border: 1px solid blue;
+		position: absolute;
+		left: 0;
+		top: 0;
+	}
+	.card-container:nth-child(1) {
+		transform: translateX(0%);
+	}
+	.card-container:nth-child(2) {
+		transform: translateX(40%);
+		z-index: 2;
+	}
+	.card-container:nth-child(3) {
+		transform: translateX(80%);
+		z-index: 3;
+	}
+	.card-container:nth-child(4) {
+		transform: translateX(120%);
+		z-index: 4;
+	}
+	.card-container:nth-child(5) {
+		transform: translateX(160%);
+		z-index: 5;
+	}
+	.card-container:nth-child(6) {
+		transform: translateX(200%);
+		z-index: 6;
+	}
+	.selected-card {
+		top: -20%;
 	}
 }

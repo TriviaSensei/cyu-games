@@ -2,6 +2,8 @@ import { handleRequest } from './utils/requestHandler.js';
 import { showMessage } from './utils/messages.js';
 
 const logout = document.querySelector('#logout');
+const profile = document.querySelector('#profile');
+
 const gameListArea = document.querySelector('#game-list-area');
 
 const handleLogout = () => {
@@ -19,4 +21,7 @@ const handleLogout = () => {
 
 document.addEventListener('DOMContentLoaded', () => {
 	logout.addEventListener('click', handleLogout);
+	profile.addEventListener('click', () => {
+		location.reload();
+	});
 });

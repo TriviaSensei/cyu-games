@@ -1,13 +1,13 @@
 :root {
 	--transition-length: 0.4s;
 }
-
+/* 
 .card-container {
 	min-width: max(72px, 13.5vw);
 	min-height: min(112px, 21vw);
 	max-width: min(13.5vw, 108px);
 	max-height: min(21vw, 168px);
-}
+} */
 
 .playing-card {
 	background-repeat: no-repeat;
@@ -23,6 +23,10 @@
 	left: 0;
 	top: 0;
 	z-index: 100;
+}
+
+.card-container.resizing {
+	transition: height var(--transition-length) width var(--transition-length);
 }
 
 .flip-card {
@@ -46,6 +50,7 @@
 
 .flip-card-back,
 .flip-card-front {
+	background-repeat: no-repeat;
 	height: 100%;
 	width: 100%;
 	position: absolute;
