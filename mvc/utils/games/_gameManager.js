@@ -90,7 +90,6 @@ class GameManager {
 		}
 
 		//if we added a player, and the game is full, start it.
-		//otherwise, send a game update
 		if (
 			playerAdded &&
 			this.gameState.players.every((p) => {
@@ -101,7 +100,7 @@ class GameManager {
 				gameStarted = true;
 				this.startGame();
 			}
-		} else this.sendGameUpdate();
+		}
 
 		return {
 			status: 'OK',
@@ -190,11 +189,10 @@ class GameManager {
 					return {
 						...p,
 						time: Math.max(0, p.time - timeElapsed),
-						reserve:
-							this.settings.timer === 'move'
-								? p.reserve -
-								  Math.max(0, timeElapsed - this.settings.time * 60000)
-								: 0,
+						reserve: this.settings.timer
+							? p.reserve -
+							  Math.max(0, timeElapsed - this.settings.time * 60000)
+							: 0,
 					};
 				return p;
 			}),
@@ -386,6 +384,8 @@ class GameManager {
 
 		const timeElapsed =
 			currentTurn === 0 ? 0 : Date.now() - this.gameState.turnStart;
+
+		console.log(this.gameState.players);
 
 		this.setGameState({
 			turnsCompleted: this.gameState.turnsCompleted + 1,

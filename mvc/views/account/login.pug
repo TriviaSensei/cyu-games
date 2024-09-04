@@ -1,6 +1,8 @@
 extends ../_base
 
 block content 
+    - if (redirect)
+        input#redirect(type="hidden" value=`${redirect}`)
     .w-100.d-flex 
         h1.m-auto.text-center.mt-2 Welcome
     - if (user)

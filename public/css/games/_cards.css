@@ -1,5 +1,5 @@
 :root {
-	--transition-length: 0.4s;
+	--transition-length: 0.3s;
 }
 /* 
 .card-container {
@@ -38,7 +38,7 @@
 	position: relative;
 	width: 100%;
 	height: 100%;
-	transition: 0.3s;
+	transition: var(--transition-length);
 	transform-style: preserve-3d;
 	/* box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); */
 }

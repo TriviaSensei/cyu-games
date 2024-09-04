@@ -45,20 +45,29 @@ exports.getPlay = (req, res, next) => {
 			title: 'Play',
 			user: res.locals.user,
 		});
-	else
+	else {
+		console.log('rendering login with redirect');
 		res.status(200).render('account/login', {
 			title: 'Login',
-			user: res.locals.user,
+			redirect: '/play',
 		});
+	}
 };
 
 exports.getGame = (req, res, next) => {
 	const game = getGame(req.params.gameName);
-	res.status(200).render('lobby', {
-		title: game?.displayName,
-		name: game?.name,
-		user: res.locals.user,
-	});
+	if (res.locals.user) {
+		res.status(200).render('lobby', {
+			title: game?.displayName,
+			name: game?.name,
+			user: res.locals.user,
+		});
+	} else {
+		res.status(200).render('account/login', {
+			title: 'Login',
+			redirect: `/play/${game?.name}`,
+		});
+	}
 };
 
 exports.redirectToIndex = (req, res, next) => {

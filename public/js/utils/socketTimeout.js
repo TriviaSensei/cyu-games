@@ -26,3 +26,7 @@ export const timeoutMessage = (msg) => {
 		showMessage('error', msg);
 	};
 };
+
+export const defaultCallback = (data) => {
+	if (data.status !== 'OK') showMessage('error', data.message);
+};

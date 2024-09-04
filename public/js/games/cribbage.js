@@ -1,6 +1,10 @@
 import { StateHandler } from '../utils/stateHandler.js';
 import { getElementArray } from '../utils/getElementArray.js';
-import { withTimeout, timeoutMessage } from '../utils/socketTimeout.js';
+import {
+	withTimeout,
+	timeoutMessage,
+	defaultCallback,
+} from '../utils/socketTimeout.js';
 import { showMessage } from '../utils/messages.js';
 import { createElement } from '../utils/createElementFromSelector.js';
 import { LobbyManager } from '../utils/lobbyManager.js';
@@ -12,16 +16,21 @@ const cardDims = {
 	width: 0,
 	height: 0,
 };
-const cardDelay = 400;
+const cardDelay = 300;
 const cardOffset = 0.4;
 
 const containerAll = document.querySelector('.container-all');
 const playArea = document.querySelector('#play-area');
+const playedCards = playArea.querySelector('.play-container');
 const myArea = document.querySelector('#my-area');
 const myHand = myArea.querySelector('.hand-container');
 const theirArea = document.querySelector('#opponent-area');
 const theirHand = theirArea.querySelector('.hand-container');
 const deckContainer = document.querySelector('.deck-container');
+const gamePrompt = document.querySelector('#game-prompt');
+const pegCount = document.querySelector('.peg-count');
+const myMessage = document.querySelector('#my-message');
+const theirMessage = document.querySelector('#opponent-message');
 
 const createGameForm = document.querySelector('#create-game-form');
 const radios = getElementArray(createGameForm, 'input[type="radio"]');
@@ -43,10 +52,12 @@ const myTag = document.querySelector('#my-tag');
 const myName = document.querySelector('#my-tag .player-name');
 const myClock = document.querySelector('#my-tag .player-timer');
 const myReserve = document.querySelector('#my-tag .player-reserve');
+const myScore = myTag.querySelector('.score-container');
 const theirTag = document.querySelector('#opponent-tag');
 const theirName = document.querySelector('#opponent-tag .player-name');
 const theirClock = document.querySelector('#opponent-tag .player-timer');
 const theirReserve = document.querySelector('#opponent-tag .player-reserve');
+const theirScore = theirTag.querySelector('.score-container');
 
 const endGameModal = new bootstrap.Modal(
 	document.querySelector('#end-game-modal')
@@ -217,25 +228,57 @@ document.addEventListener('DOMContentLoaded', () => {
 		const content = e.target.querySelector('#status-content');
 		if (!content) return;
 
-		if (e.detail.status === 'ended') {
-			content.innerHTML = 'Game over';
-		} else if (e.detail.status === 'pregame')
+		if (e.detail.status === 'ended') content.innerHTML = 'Game over';
+		else if (e.detail.status === 'pregame')
 			content.innerHTML = 'Game starting...';
-		if (e.detail.stage === 'draw-for-crib')
-			content.innerHTML = 'Drawing for first deal...';
 		else if (e.detail.status === 'playing') {
-			if (e.detail.stage === 'crib') {
-				if (e.detail.crib === e.detail.myIndex)
-					content.innerHTML = 'Select two cards for your crib.';
+			content.innerHTML = 'Game in progress';
+			if (e.detail.stage === 'play') {
+				if (e.detail.turn === e.detail.myIndex) content.innerHTML = `Your turn`;
 				else
-					content.innerHTML = `Select two cards for ${
+					content.innerHTML = `${
 						e.detail.players[1 - e.detail.myIndex].user.name
-					}'s crib.`;
+					}'s turn`;
 			}
-		} else if (e.detail.status === 'ended') {
-			content.innerHTML = 'Game over';
 		}
 	});
+
+	gameState.addWatcher(gamePrompt, (e) => {
+		if (!e) return;
+		if (!e.detail?.stage) {
+			e.target.classList.add('d-none');
+			return;
+		}
+
+		if (e.detail.stage === 'crib') {
+			if (e.detail.dealer === e.detail.myIndex)
+				e.target.innerHTML = '<div>Select two cards for your crib.<div>';
+			else
+				e.target.innerHTML = `<div>Select two cards for ${
+					e.detail.players[1 - e.detail.myIndex].user.name
+				}'s crib.</div>`;
+
+			const btn = createElement('button.btn.btn-primary.confirm-crib');
+			btn.addEventListener('click', confirmCrib);
+			btn.innerHTML = 'Confirm';
+			e.target.appendChild(btn);
+			e.target.classList.remove('d-none');
+		} else if (e.detail.stage === 'play') {
+			if (e.detail.playedCards.length === 0) {
+				if (e.detail.turn === e.detail.myIndex)
+					e.target.innerHTML = `Your turn`;
+				else
+					e.target.innerHTML = `${
+						e.detail.players[1 - e.detail.myIndex].user.name
+					}'s turn`;
+
+				e.target.classList.remove('d-none');
+			} else {
+				e.target.classList.add('d-none');
+			}
+		}
+	});
+
 	gameState.addWatcher(myName, (e) => {
 		if (!e.detail) return;
 		const ind = e.detail.myIndex;
@@ -250,6 +293,96 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (!p.user) e.target.innerHTML = '???';
 		else e.target.innerHTML = p.user.name;
 	});
+
+	gameState.addWatcher(pegCount, (e) => {
+		if (e.detail?.stage !== 'play') {
+			e.target.classList.add('d-none');
+			return;
+		}
+		e.target.classList.remove('d-none');
+
+		const lastMove =
+			e.detail.playedCards.length > 0
+				? e.detail.playedCards.slice(-1).pop()
+				: null;
+
+		const ct = e.target.querySelector('#count');
+		if (!lastMove?.count) ct.innerHTML = '0';
+		else ct.innerHTML = lastMove.count;
+	});
+
+	let messageTimeouts = [null, null];
+
+	//showing message for scoring during play
+	gameState.addWatcher(null, (state) => {
+		if (!state?.playedCards) return;
+		const scoring = state?.scoring;
+		const lastPlay =
+			state.playedCards.length === 0 ? null : state.playedCards.slice(-1).pop();
+
+		let msg;
+		const player = lastPlay?.player || state.dealer;
+
+		myMessage.classList.add('d-none');
+		theirMessage.classList.add('d-none');
+		if (scoring && scoring.length > 0) {
+			const str = scoring.join(', ');
+
+			if (!lastPlay) {
+				msg = player === state.myIndex ? myMessage : theirMessage;
+			} else {
+				msg = lastPlay.player === state.myIndex ? myMessage : theirMessage;
+			}
+
+			if (messageTimeouts[player]) {
+				clearTimeout(messageTimeouts[player]);
+			}
+			msg.innerHTML = str;
+			msg.classList.remove('d-none');
+		} else if (lastPlay && !lastPlay.card) {
+			msg = player === state.myIndex ? myMessage : theirMessage;
+			msg.innerHTML = 'Go';
+			msg.classList.remove('d-none');
+		}
+	});
+
+	//scores
+	gameState.addWatcher(myScore, (e) => {
+		if (!e.detail) return;
+		const ind = e.detail.myIndex;
+		e.target.innerHTML = e.detail.players[ind].score;
+	});
+	gameState.addWatcher(theirScore, (e) => {
+		if (!e.detail) return;
+		const ind = e.detail.myIndex;
+		e.target.innerHTML = e.detail.players[1 - ind].score;
+	});
+
+	const confirmCrib = (e) => {
+		const selectedCards = getElementArray(myArea, '.selected-card');
+		if (selectedCards.length !== 2)
+			return showMessage('error', 'You must select select 2 cards');
+		socket.emit(
+			'play-move',
+			{
+				cards: selectedCards.map((c) => {
+					return {
+						suit: c.getAttribute('data-suit'),
+						rank: c.getAttribute('data-rank'),
+					};
+				}),
+			},
+			withTimeout((data) => {
+				if (data.status !== 'OK') return showMessage('error', data.message);
+				selectedCards.forEach((c) => {
+					c.remove();
+				});
+				e.target.remove();
+				if (data.gameState.crib.length !== 4)
+					gamePrompt.innerHTML = 'Waiting for opponent...';
+			}, timeoutMessage)
+		);
+	};
 
 	const createCard = (card, flip, shown) => {
 		const deck = document.querySelector('.deck-container');
@@ -278,21 +411,20 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		//not flippable - either show the card or the back
 		else if (card) {
-			pc.classList.add(`r-${card.rank}.s-${card.suit}`);
+			pc.classList.add(`r-${card.rank}`, `s-${card.suit}`);
 		} else {
 			pc.classList.add('flipped');
 		}
 		return cont;
 	};
 
-	const removeAllCards = () => {
-		[myHand, theirHand].forEach((h) => {
-			h.innerHTML = '';
-		});
+	const removeAllCards = (hand) => {
+		hand.innerHTML = '';
 	};
 
-	const dealCards = (cards, flip, shown, hand) => {
-		removeAllCards();
+	const dealCards = (cards, flip, shown, hand, delay) => {
+		removeAllCards(hand);
+		const state = gameState.getState();
 		const newCards = cards.map((c) => {
 			const toReturn = createCard(c, flip, false);
 			toReturn.classList.add('moving');
@@ -300,7 +432,8 @@ document.addEventListener('DOMContentLoaded', () => {
 			return toReturn;
 		});
 		hand.style.width = `${
-			cardDims.width + (cards.length - 1) * cardDims.width * cardOffset
+			cardDims.width +
+			(state.stage === 'draw-for-crib' ? 0 : 5) * cardDims.width * cardOffset
 		}px`;
 		hand.style.height = `${cardDims.height}px`;
 
@@ -320,14 +453,65 @@ document.addEventListener('DOMContentLoaded', () => {
 					hand.appendChild(c);
 					c.style.transform = '';
 				}, cardDelay);
-			}, cardDelay * i);
+			}, delay * i);
 		});
 
 		return newCards;
 	};
 
+	const displayCards = (cards, flip, shown, hand) => {
+		removeAllCards(hand);
+		const state = gameState.getState();
+		const newCards = cards.map((c) => {
+			const toReturn = createCard(c, flip, shown);
+			playArea.appendChild(toReturn);
+			return toReturn;
+		});
+		hand.style.width = `${
+			cardDims.width +
+			(state.stage === 'crib' ? 0 : 5) * cardDims.width * cardOffset
+		}px`;
+		hand.style.height = `${cardDims.height}px`;
+
+		newCards.forEach((c) => hand.appendChild(c));
+		return newCards;
+	};
+
 	const byRank = (a, b) => {
 		return a.value - b.value;
+	};
+
+	const selectCard = (e) => {
+		const state = gameState.getState();
+
+		const sc = getElementArray(myHand, '.selected-card');
+		const cc = e.target.closest('.card-container');
+
+		if (state.stage === 'crib') {
+			if (sc.length >= 2 && !cc.classList.contains('selected-card')) return;
+			cc.classList.toggle('selected-card');
+		} else if (state.stage === 'play') {
+			if (cc.classList.contains('selected-card')) {
+				//if the card is "selected" and then clicked, attempt to play it
+				const data = {
+					suit: cc.getAttribute('data-suit'),
+					rank: cc.getAttribute('data-rank'),
+				};
+				socket.emit(
+					'play-move',
+					data,
+					withTimeout((data) => {
+						if (data.status !== 'OK') return showMessage('error', data.message);
+						gameState.setState(data.gameState);
+					})
+				);
+			} else {
+				cc.classList.toggle('selected-card');
+				sc.forEach((c) => {
+					c.classList.remove('selected-card');
+				});
+			}
+		}
 	};
 	//handler for rendering game state, etc.
 	gameState.addWatcher(null, (state) => {
@@ -339,8 +523,20 @@ document.addEventListener('DOMContentLoaded', () => {
 					state.players[state.myIndex].hand[0],
 					state.players[1 - state.myIndex].hand[0],
 				];
-				dealCards(state.players[state.myIndex].hand, true, true, myHand);
-				dealCards(state.players[1 - state.myIndex].hand, true, true, theirHand);
+				dealCards(
+					state.players[state.myIndex].hand,
+					true,
+					true,
+					myHand,
+					cardDelay
+				);
+				dealCards(
+					state.players[1 - state.myIndex].hand,
+					true,
+					true,
+					theirHand,
+					cardDelay
+				);
 
 				setTimeout(() => {
 					showMessage(
@@ -350,11 +546,18 @@ document.addEventListener('DOMContentLoaded', () => {
 								? `You get`
 								: state.players[1 - state.myIndex].user.name + ' gets'
 						} the first deal.`,
-						2000
+						1500
 					);
 				}, cardDelay);
 			}
 		} else if (state.status === 'playing') {
+			//indicator for whose crib it is
+			let cribIndicator = document.querySelector('.crib-indicator');
+			if (!cribIndicator) cribIndicator = createElement('.crib-indicator');
+
+			if (state.dealer === state.myIndex) myTag.appendChild(cribIndicator);
+			else theirTag.appendChild(cribIndicator);
+
 			/**
 			 * Playing stages:
 			 * - crib
@@ -373,16 +576,10 @@ document.addEventListener('DOMContentLoaded', () => {
 							cardDelay
 						);
 						myCards.forEach((c) => {
-							c.addEventListener('click', (e) => {
-								const sc = getElementArray(myHand, '.selected-card');
-								const cc = e.target.closest('.card-container');
-								if (sc.length >= 2 && !cc.classList.contains('selected-card'))
-									return;
-								cc.classList.toggle('selected-card');
-							});
+							c.addEventListener('click', selectCard);
 						});
 					},
-					state.crib === state.myIndex ? cardDelay / 2 : 0
+					state.dealer === state.myIndex ? cardDelay / 2 : 0
 				);
 
 				setTimeout(
@@ -395,10 +592,71 @@ document.addEventListener('DOMContentLoaded', () => {
 							cardDelay
 						);
 					},
-					state.crib === state.myIndex ? 0 : cardDelay / 2
+					state.dealer === state.myIndex ? 0 : cardDelay / 2
 				);
+			} else if (state.stage === 'play') {
+				const cc = deckContainer.querySelector('.card-container');
+				const pc = cc.querySelector('.playing-card');
+				const cf = cc.querySelector('.flip-card-front');
+				cf.classList.add(
+					`r-${state.turnCard.rank}`,
+					`s-${state.turnCard.suit}`
+				);
+				pc.classList.add('shown');
+
+				const myCards = displayCards(
+					state.players[state.myIndex].hand.sort(byRank),
+					true,
+					true,
+					myHand
+				);
+				myCards.forEach((c) => {
+					c.addEventListener('click', selectCard);
+				});
+				displayCards(
+					state.players[1 - state.myIndex].hand,
+					true,
+					false,
+					theirHand
+				);
+			} else if (state.stage === 'count-hand') {
+				displayCards([], true, true, myHand);
+				displayCards([], true, false, theirHand);
 			}
 		}
+	});
+
+	gameState.addWatcher(playedCards, (e) => {
+		if (!e.detail?.playedCards) return;
+		e.target.innerHTML = '';
+		const ind = e.detail.playedCards.reverse().findIndex((c) => {
+			return c.last;
+		});
+		e.detail.playedCards.reverse();
+
+		const subset =
+			ind === -1 ? e.detail.playedCards : e.detail.playedCards.slice(-ind);
+
+		subset.forEach((c, i) => {
+			if (!c.card) return;
+			const card = createCard(c.card, false, true);
+			const myCard = c.player === e.detail.myIndex;
+			if (myCard) card.classList.add('my-card');
+			else card.classList.add('their-card');
+			e.target.appendChild(card);
+		});
+	});
+
+	socket.on('crib-submitted', (data) => {
+		[1, 2].forEach((n) => {
+			const c = theirHand.querySelector('.card-container');
+			c.remove();
+		});
+	});
+
+	socket.on('card-played', (data) => {
+		console.log(data.card);
+		gameState.setState(data.gameState);
 	});
 
 	socket.on('update-game-state', (data) => {

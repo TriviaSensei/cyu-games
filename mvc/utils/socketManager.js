@@ -420,21 +420,6 @@ const socket = async (http, server) => {
 				...data,
 			});
 			cb(result);
-
-			const gameState = game.gameManager.getGameState();
-			if (!gameState) return;
-			if (gameState.status === 'ended') {
-				if (gameState.ratingChanges)
-					gameState.ratingChanges.forEach((rc) => {
-						connectedUsers.some((u) => {
-							if (u.id === rc.id) {
-								u.rating.rating = rc.newRating;
-								u.rating.games = u.rating.games + 1;
-								return true;
-							}
-						});
-					});
-			}
 		});
 
 		socket.on('request-exit', (data, cb) => {

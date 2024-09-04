@@ -22,17 +22,26 @@ body {
 	padding: 10px;
 	opacity: 1;
 	font-weight: bold;
-	transition: opacity 0.25s ease-in-out;
-	-moz-transition: opacity 0.25s ease-in-out;
-	-webkit-transition: opacity 0.25s ease-in-out;
+	transition: opacity 1s ease-in-out;
+	-moz-transition: opacity 1s ease-in-out;
+	-webkit-transition: opacity 1s ease-in-out;
 	color: black;
 	background-color: #d9ffd6;
+}
+
+.fading {
+	opacity: 0;
 }
 
 .player-tag {
 	display: flex;
 	flex-direction: row;
 }
+
+.player-tag.turn .player-info {
+	background-color: darkgreen;
+}
+
 .player-info {
 	padding-left: 1rem;
 	padding-right: 1rem;
@@ -84,27 +93,6 @@ body {
 	font-weight: bold;
 }
 
-.crib-indicator {
-	display: flex;
-	flex-direction: row;
-	align-items: flex-start;
-	margin-right: 1rem;
-}
-
-.crib-indicator.my-crib {
-	align-items: flex-end;
-}
-
-.crib {
-	height: 50%;
-	display: flex;
-}
-
-.crib::after {
-	content: 'CRIB ▶';
-	margin: auto;
-}
-
 .score-tag {
 	font-size: 1.5rem;
 	font-weight: bold;
@@ -119,6 +107,8 @@ body {
 	height: 100%;
 	display: flex;
 	position: relative;
+	background-image: url('/img/cards/1B.svg');
+	background-repeat: no-repeat;
 }
 
 .deck-container > .playing-card {
@@ -126,13 +116,29 @@ body {
 }
 
 .peg-count {
-	margin: auto;
+	border: 1px solid var(--black);
+	background-color: var(--green);
+	position: absolute;
+	top: 70%;
+	left: 50%;
+	transform: translate(-50%, -50%);
 	display: flex;
 	flex-direction: column;
-	background-color: white;
 	color: black;
 	border-radius: 3px;
 	padding: 0.3rem;
+	font-weight: bold;
+}
+
+.crib-indicator {
+	display: flex;
+}
+
+.crib-indicator:after {
+	content: '◀ CRIB';
+	margin: auto;
+	font-weight: bold;
+	color: yellow;
 }
 
 .play-container {
@@ -150,51 +156,51 @@ body {
 		transform: translate(0%);
 	}
 	.card-container:nth-child(2) {
-		transform: translate(20%);
+		transform: translate(30%);
 		z-index: 2;
 	}
 	.card-container:nth-child(3) {
-		transform: translate(40%);
+		transform: translate(60%);
 		z-index: 3;
 	}
 	.card-container:nth-child(4) {
-		transform: translate(60%);
+		transform: translate(90%);
 		z-index: 4;
 	}
 	.card-container:nth-child(5) {
-		transform: translate(80%);
+		transform: translate(120%);
 		z-index: 5;
 	}
 	.card-container:nth-child(6) {
-		transform: translate(100%);
+		transform: translate(150%);
 		z-index: 6;
 	}
 	.card-container:nth-child(7) {
-		transform: translate(120%);
+		transform: translate(180%);
 		z-index: 7;
 	}
 	.card-container:nth-child(8) {
-		transform: translate(140%);
+		transform: translate(210%);
 		z-index: 8;
 	}
 	.card-container:nth-child(9) {
-		transform: translate(160%);
+		transform: translate(240%);
 		z-index: 9;
 	}
 	.card-container:nth-child(10) {
-		transform: translate(180%);
+		transform: translate(270%);
 		z-index: 10;
 	}
 	.card-container:nth-child(11) {
-		transform: translate(200%);
+		transform: translate(300%);
 		z-index: 11;
 	}
 	.card-container:nth-child(12) {
-		transform: translate(220%);
+		transform: translate(330%);
 		z-index: 11;
 	}
 	.card-container:nth-child(13) {
-		transform: translate(240%);
+		transform: translate(360%);
 		z-index: 11;
 	}
 }
@@ -205,7 +211,6 @@ body {
 	display: flex;
 	flex-direction: row;
 	.card-container {
-		border: 1px solid blue;
 		position: absolute;
 		left: 0;
 		top: 0;

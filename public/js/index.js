@@ -5,8 +5,9 @@ const loginForm = document.querySelector('#login-form');
 const username = document.querySelector('#name');
 const password = document.querySelector('#password');
 const dataArea = document.querySelector('#data-area');
+const redirect = document.querySelector('#redirect');
 
-let socket;
+let redirectLocation;
 
 const handleLogin = (e) => {
 	e.preventDefault();
@@ -25,7 +26,7 @@ const handleLogin = (e) => {
 		}
 		showMessage('info', 'Successfully logged in');
 		setTimeout(() => {
-			location.href = '/play';
+			location.href = redirectLocation || '/play';
 		}, 1000);
 	};
 	handleRequest(str, 'POST', body, handler);
@@ -35,5 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	const user = dataArea?.getAttribute('data-user');
 	// handleRequest('/api/v1/test', 'POST', { user }, () => {});
 	if (user) location.href = '/play';
+	if (redirect) {
+		redirectLocation = redirect.value;
+		redirect.remove();
+	}
 	loginForm.addEventListener('submit', handleLogin);
 });

@@ -11,14 +11,18 @@
             #opponent-score.score-tag 
                 .score-container.m-auto 0
     #play-area.middle-area
+        #game-prompt.game-prompt.d-none
         .d-flex.w-100.h-100
-            .deck-container.card-container.h-100
-                #draw-deck.playing-card.flip-card
-                    .flip-card-back 
-                    .flip-card-front
-                    .peg-count.d-none
-                        .fs-6.text-center Count: 
-                        .fs-5.text-center 0        
+            .m-auto.game-status
+            .deck-container
+                .card-container.h-100
+                    #draw-deck.playing-card.flip-card
+                        .flip-card-inner
+                            .flip-card-back 
+                            .flip-card-front
+                        .peg-count.d-none
+                            .fs-6.text-center Count: 
+                            #count.fs-5.text-center 0        
             .ms-3.f-1.play-container.position-relative
     #my-area.player-area
         .hand-container
@@ -31,4 +35,3 @@
                     .player-reserve 0:00
             #my-score.score-tag 
                 .score-container.m-auto 0
-

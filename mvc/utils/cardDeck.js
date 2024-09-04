@@ -35,12 +35,10 @@ class CardDeck {
 
 	//draws and removes n cards at random
 	draw(n) {
-		console.log(`drawing ${n}`);
 		const toReturn = [];
 		for (var i = 0; i < n; i++) {
 			toReturn.push(this.drawCard());
 		}
-		console.log(toReturn);
 		return toReturn;
 	}
 
@@ -68,7 +66,6 @@ class CardDeck {
 	}
 	//randomly
 	addRandom(cards) {
-		console.log(`Adding ${cards}`);
 		if (Array.isArray(cards)) {
 			cards.forEach((c) => {
 				this.addRandom(c);
@@ -77,14 +74,12 @@ class CardDeck {
 			const cardsLeft = this.cardsLeft();
 			const ind = Math.floor(Math.random() * (cardsLeft + 1));
 			this.deck.splice(ind, 0, cards);
-			console.log(this.cardsLeft());
 		}
 	}
 
 	//shuffles the cards in the deck (not including the ones removed) into a random order. If you've drawn cards, you have to add
 	//them back to the deck using one of the above methods before shuffling it back in, if you want it in there.
 	shuffle() {
-		console.log('shuffling');
 		this.deck.forEach((c) => {
 			c.order = Math.random();
 		});
@@ -94,7 +89,6 @@ class CardDeck {
 		this.deck.forEach((c) => {
 			delete c.order;
 		});
-		console.log(this.cardsLeft());
 	}
 
 	constructor(...args) {

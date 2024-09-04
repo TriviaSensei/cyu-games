@@ -10,7 +10,7 @@ router.get(
 	authController.isLoggedIn,
 	viewController.getActivation
 );
-router.use(authController.protect);
+router.use(authController.isLoggedIn);
 router.get('/play', viewController.getPlay);
 router.get('/play/:gameName', viewController.getGame);
 // router.get('/:game', viewController.getHome);
