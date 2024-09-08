@@ -478,6 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	};
 
 	const byRank = (a, b) => {
+		if (a.value === b.value) return a.suit.localeCompare(b.suit);
 		return a.value - b.value;
 	};
 
@@ -501,7 +502,8 @@ document.addEventListener('DOMContentLoaded', () => {
 					'play-move',
 					data,
 					withTimeout((data) => {
-						if (data.status !== 'OK') return showMessage('error', data.message);
+						if (data.status !== 'OK')
+							return cc.classList.remove('selected-card');
 						gameState.setState(data.gameState);
 					})
 				);
@@ -622,15 +624,29 @@ document.addEventListener('DOMContentLoaded', () => {
 			} else if (state.stage === 'count-hand') {
 				displayCards([], true, true, myHand);
 				displayCards([], true, false, theirHand);
+				console.log(state);
 			}
 		}
 	});
 
+	const createTestDiv = (rect, className) => {
+		const existing = document.querySelector(`.${className}`);
+		if (existing) existing.remove();
+		const toReturn = createElement(`.${className}`);
+		toReturn.style.left = `${rect.left}px`;
+		toReturn.style.top = `${rect.top}px`;
+		toReturn.style.width = `${rect.width}px`;
+		toReturn.style.height = `${rect.height}px`;
+		document.body.appendChild(toReturn);
+		return toReturn;
+	};
+
 	gameState.addWatcher(playedCards, (e) => {
 		if (!e.detail?.playedCards) return;
 		e.target.innerHTML = '';
-		const ind = e.detail.playedCards.reverse().findIndex((c) => {
-			return c.last;
+		const ind = e.detail.playedCards.reverse().findIndex((c, i) => {
+			if (i === 0) return false;
+			else return c.last;
 		});
 		e.detail.playedCards.reverse();
 
@@ -639,11 +655,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		subset.forEach((c, i) => {
 			if (!c.card) return;
-			const card = createCard(c.card, false, true);
 			const myCard = c.player === e.detail.myIndex;
+			const card = createCard(
+				c.card,
+				!myCard,
+				myCard || i !== subset.length - 1
+			);
+
+			//all but the last card...just put it in the tableau
 			if (myCard) card.classList.add('my-card');
 			else card.classList.add('their-card');
 			e.target.appendChild(card);
+
+			//animate the last card
+			if (i === subset.length - 1) {
+				let xStart, xEnd, yStart, yEnd;
+				const cardInner = card.querySelector('.playing-card');
+				const destinationRect = card.getBoundingClientRect();
+
+				const style = window.getComputedStyle(card);
+				const computedStyle = Number.parseFloat(style.top);
+				xEnd = destinationRect.left;
+				yEnd = destinationRect.top;
+
+				// const x1 = createElement('.dot');
+				// x1.style.top = `${destinationRect.top}px`;
+				// x1.style.left = `${destinationRect.left}px`;
+				// document.body.appendChild(x1);
+
+				let sourceRect, xOff;
+				if (myCard) {
+					card.classList.remove('my-card');
+					//where did this card start?
+					let ind = e.detail.players[e.detail.myIndex].hand
+						.sort(byRank)
+						.findIndex((c2) => {
+							if (c2.value > c.card.value) return true;
+							else if (c2.value === c.card.value)
+								return c2.suit.localeCompare(c.card.suit) > 0;
+							return false;
+						});
+					const my = getElementArray(myHand, '.card-container');
+					if (ind === -1) {
+						if (my.length > 0) {
+							ind = my.length;
+						}
+					}
+					xOff = destinationRect.width * cardOffset * ind;
+					sourceRect = myHand.getBoundingClientRect();
+				} else {
+					card.classList.remove('their-card');
+					const len = e.detail.players[1 - e.detail.myIndex].hand.length;
+					xOff = len * cardOffset * destinationRect.width;
+					sourceRect = theirHand.getBoundingClientRect();
+				}
+
+				xStart = sourceRect.left + xOff;
+				yStart = sourceRect.top;
+
+				const dx = xEnd - xStart;
+				const dy = yEnd - yStart;
+
+				card.classList.add('moving');
+				card.style.top = `${yStart}px`;
+				card.style.left = `${xStart}px`;
+
+				setTimeout(() => {
+					card.style.transform = `translateX(${dx}px)`;
+					card.style.transform += `translateY(${dy}px)`;
+					if (!myCard) cardInner.classList.add('shown');
+					setTimeout(() => {
+						card.classList.add(myCard ? 'my-card' : 'their-card');
+						card.classList.remove('moving');
+						card.style.transform = '';
+						card.style.top = '';
+						card.style.left = '';
+						playedCards.appendChild(card);
+					}, cardDelay);
+				}, 1);
+			}
 		});
 	});
 
@@ -655,7 +745,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	});
 
 	socket.on('card-played', (data) => {
-		console.log(data.card);
 		gameState.setState(data.gameState);
 	});
 

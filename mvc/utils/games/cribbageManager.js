@@ -138,8 +138,6 @@ class CribbageManager extends GameManager {
 	}
 
 	handlePlayScoring() {
-		console.log(this.gameState.playedCards);
-
 		this.gameState.scoring = [];
 		//heels
 		if (
@@ -161,7 +159,6 @@ class CribbageManager extends GameManager {
 			}
 			//pairs, triples, etc.
 			let match = 0;
-			console.log(this.gameState.playedCards);
 			if (lastPlay?.card) {
 				for (var i = this.gameState.playedCards.length - 2; i >= 0; i--) {
 					if (
@@ -321,19 +318,6 @@ class CribbageManager extends GameManager {
 				};
 			}),
 		};
-	}
-
-	testTime(n) {
-		console.log(`----- ${n} -----`);
-		console.log(
-			this.gameState.players.map((p) => {
-				return {
-					time: p.time,
-					reserve: p.reserve,
-				};
-			})
-		);
-		console.log(`-------------`);
 	}
 
 	playMove = async (move) => {
@@ -584,6 +568,7 @@ class CribbageManager extends GameManager {
 				) {
 					//if not, score the hand
 					this.setGameState({ stage: 'count-hand' });
+					console.log(this.gameState);
 					//notify the other player of the play
 					if (move.suit && move.rank) {
 						this.io.to(other.user.socketId).emit('card-played', {
